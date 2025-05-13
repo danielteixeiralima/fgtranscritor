@@ -31,7 +31,7 @@
                 <input class="form-check-input" type="checkbox" id="toggleAllMeetings" 
                        {% if show_all %}checked{% endif %}
                        onclick="toggleShowAll(this.checked)">
-                <label class="form-check-label text-light" for="toggleAllMeetings">
+                <label class="form-check-label text-light" for="toggleShowAll">
                     Mostrar todas as reuniões
                 </label>
             </div>
@@ -155,22 +155,12 @@
                         </td>
                         <td>
                             <div class="btn-group">
-                                {% if meeting.results_json %}
-                                    <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" 
-                                       class="btn btn-sm btn-outline-primary" title="Ver detalhes">
-                                        <i data-feather="eye"></i>
-                                    </a>
-                                {% elif meeting.google_calendar_event_id %}
-                                    <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" 
-                                       class="btn btn-sm btn-outline-primary" title="Ver detalhes">
-                                        <i data-feather="eye"></i>
-                                    </a>
-                                {% else %}
-                                    <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" 
-                                       class="btn btn-sm btn-outline-primary" title="Ver detalhes">
-                                        <i data-feather="eye"></i>
-                                    </a>
-                                {% endif %}
+                                <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" 
+                                   class="btn btn-sm btn-outline-primary meeting-detail-link" 
+                                   title="Ver detalhes"
+                                   data-ff-id="{{ meeting.google_calendar_event_id or meeting.transcript_id }}">
+                                    <i data-feather="eye"></i>
+                                </a>
                                 <button type="button" class="btn btn-sm btn-outline-danger" 
                                         title="Excluir" data-bs-toggle="modal" 
                                         data-bs-target="#deleteModal{{ meeting.id }}">
@@ -239,5 +229,59 @@
         // Envia o formulário
         document.getElementById('filterForm').submit();
     }
+</script>
+
+<script>
+document.querySelectorAll('.meeting-detail-link').forEach(link => {
+  link.addEventListener('click', async function(event) {
+    event.preventDefault();
+    const ffId = this.dataset.ffId;
+    console.log('Fireflies ID:', ffId);
+
+    const BODY = {
+      operationName: "GetTranscript",
+      query: `
+        query GetTranscript($id:String!){
+          transcript(id:$id){
+            id
+            title
+            date
+            transcript_url
+            audio_url
+            video_url
+            meeting_link
+            duration
+            participants
+            summary { overview bullet_gist }
+            analytics {
+              sentiments { positive_pct neutral_pct negative_pct }
+              categories { questions date_times tasks metrics }
+              speakers { name duration word_count }
+            }
+            sentences { index speaker_name text start_time end_time }
+          }
+        }`,
+      variables: { id: ffId }
+    };
+
+    try {
+      const resp = await fetch("https://api.fireflies.ai/graphql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-apollo-operation-name": "GetTranscript",
+          "Authorization": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99"
+        },
+        body: JSON.stringify(BODY)
+      });
+      const responseJson = await resp.json();
+      console.log("Fireflies API response:", responseJson);
+    } catch (err) {
+      console.error("Erro ao chamar Fireflies:", err);
+    }
+
+    window.location.href = this.href;
+  });
+});
 </script>
 {% endblock %}

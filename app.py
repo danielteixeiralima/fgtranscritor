@@ -363,47 +363,119 @@ def analyze():
         flash(f'Ocorreu um erro durante a análise: {str(e)}', 'danger')
         return redirect(url_for('new_meeting'))
 
-@app.route('/meetings/<int:meeting_id>')
-@login_required
-def meeting_detail(meeting_id):
-    """Show detailed results for a specific meeting"""
-    meeting = Meeting.query.get_or_404(meeting_id)
-    if meeting.user_id != current_user.id:
-        flash('Você não tem permissão para acessar esta reunião!', 'danger')
-        return redirect(url_for('dashboard'))
 
-    # --- INÍCIO: buscar audio/video e sentences do Fireflies via GraphQL ---
-    GET_TRANSCRIPT = """
-    query GetTranscript($id:String!){
-      transcript(id:$id){
+def fetch_fireflies_transcript(ff_id):
+    """
+    Busca o transcript completo da API Fireflies.ai via GraphQL.
+    Retorna o JSON bruto exatamente como no Postman.
+    """
+    query = """
+    query GetTranscript($id: String!) {
+      transcript(id: $id) {
+        id
+        title
+        date
+        transcript_url
         audio_url
         video_url
-        sentences { text }
+        meeting_link
+        duration
+        participants
+        summary {
+          overview
+          bullet_gist
+        }
+        analytics {
+          sentiments {
+            positive_pct
+            neutral_pct
+            negative_pct
+          }
+          categories {
+            questions
+            date_times
+            tasks
+            metrics
+          }
+          speakers {
+            name
+            duration
+            word_count
+          }
+        }
+        sentences {
+          index
+          speaker_name
+          text
+          start_time
+          end_time
+        }
       }
-    }"""
-    vars = {"id": meeting.google_calendar_event_id or meeting.transcript_id}
+    }
+    """
+
+    body = {
+        "operationName": "GetTranscript",
+        "query": query,
+        "variables": {"id": ff_id}
+    }
     headers = {
         "Content-Type": "application/json",
         "x-apollo-operation-name": "GetTranscript",
         "Authorization": f"Bearer {os.environ['FIREFLIES_API_TOKEN']}"
     }
+
     resp = requests.post(
         "https://api.fireflies.ai/graphql",
-        json={"query": GET_TRANSCRIPT, "variables": vars},
+        json=body,
         headers=headers
-    ).json()
+    )
+    resp.raise_for_status()
+    return resp.json()
 
-    # Trata caso de transcript null
-    tr = resp.get("data", {}).get("transcript")
-    if not tr:
-        audio_url = None
-        video_url = None
-        sentences = []
-    else:
-        audio_url = tr.get("audio_url")
-        video_url = tr.get("video_url")
-        sentences = [s.get("text", "") for s in tr.get("sentences", [])]
-    # --- FIM: busca GraphQL ---
+
+@app.route('/meetings/<int:meeting_id>')
+@login_required
+def meeting_detail(meeting_id):
+    """Mostra o detalhe de uma reunião, incluindo transcript do Fireflies."""
+    meeting = Meeting.query.get_or_404(meeting_id)
+    if meeting.user_id != current_user.id:
+        flash('Você não tem permissão para acessar esta reunião!', 'danger')
+        return redirect(url_for('dashboard'))
+
+    ff_id = meeting.results.get('transcript', {}).get('id')
+    if not ff_id:
+        flash('Transcript ID não encontrado. Não é possível buscar no Fireflies.', 'warning')
+        return render_template(
+            'results.html',
+            results=meeting.results,
+            meeting=meeting,
+            audio_url=None,
+            video_url=None,
+            sentences=[]
+        )
+
+    transcript_json = None
+    audio_url = None
+    video_url = None
+    sentences = []
+
+    try:
+        transcript_json = fetch_fireflies_transcript(ff_id)
+        tr = transcript_json.get("data", {}).get("transcript")
+        if tr:
+            audio_url = tr.get("audio_url")
+            video_url = tr.get("video_url")
+            sentences = [s.get("text", "") for s in tr.get("sentences", [])]
+        else:
+            logger.error(f"Fireflies retornou transcript null: {transcript_json!r}")
+            flash(
+                f"Transcrição externa retornou vazia. Resposta da API: {transcript_json}",
+                "warning"
+            )
+    except Exception as e:
+        logger.exception("Erro ao buscar transcript Fireflies")
+        flash(f"Erro ao obter transcrição externa: {e}", "warning")
 
     return render_template(
         'results.html',
@@ -411,9 +483,9 @@ def meeting_detail(meeting_id):
         meeting=meeting,
         audio_url=audio_url,
         video_url=video_url,
-        sentences=sentences
+        sentences=sentences,
+        transcript_json=transcript_json
     )
-
 
 @app.route('/meetings/<int:meeting_id>/delete', methods=['POST'])
 @login_required
@@ -1373,3 +1445,4 @@ def process_calendar_analysis(meeting_id):
         logger.error(f"Error during calendar meeting analysis: {str(e)}")
         flash(f'Ocorreu um erro durante a análise: {str(e)}', 'danger')
         return redirect(url_for('edit_calendar_analysis', meeting_id=meeting_id))
+
