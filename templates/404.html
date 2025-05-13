@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <div class="card shadow-sm">
+            <div class="card-body p-5">
+                <i data-feather="map" style="width: 100px; height: 100px;" class="text-muted mb-4"></i>
+                <h1 class="display-4 mb-4">Página não encontrada</h1>
+                <p class="lead mb-4">A página que você está procurando não existe ou pode ter sido removida.</p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg px-4">
+                    <i data-feather="home"></i> Voltar para o início
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

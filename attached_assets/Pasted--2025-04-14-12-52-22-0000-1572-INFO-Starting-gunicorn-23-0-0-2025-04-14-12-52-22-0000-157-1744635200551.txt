@@ -1,0 +1,56 @@
+[2025-04-14 12:52:22 +0000] [1572] [INFO] Starting gunicorn 23.0.0
+[2025-04-14 12:52:22 +0000] [1572] [INFO] Listening at: http://0.0.0.0:5000 (1572)
+[2025-04-14 12:52:22 +0000] [1572] [INFO] Using worker: sync
+[2025-04-14 12:52:22 +0000] [1583] [INFO] Booting worker with pid: 1583
+[2025-04-14 12:52:22 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:22 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:22 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:22 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:22 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:23 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:23 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:23 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:23 +0000] [1572] [INFO] Handling signal: winch
+DEBUG:app:Database tables created or confirmed
+[2025-04-14 12:52:27 +0000] [1572] [INFO] Handling signal: winch
+INFO:google_calendar:
+Para configurar o Google Calendar, você precisa:
+1. Acessar: https://console.cloud.google.com/apis/credentials
+2. Criar um novo projeto e habilitar a API do Google Calendar
+3. Criar um novo Cliente OAuth
+4. Adicionar https://d4798cab-a1b2-402d-a101-c6f6d95cc1ba-00-1olygww69ulue.kirk.replit.dev/settings/google_callback como URI de redirecionamento autorizado
+5. Definir as variáveis de ambiente GOOGLE_OAUTH_CLIENT_ID e GOOGLE_OAUTH_CLIENT_SECRET
+
+[2025-04-14 12:52:27 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:27 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:27 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:27 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:27 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:28 +0000] [1572] [INFO] Handling signal: winch
+DEBUG:requests_oauthlib.oauth2_session:Generated new state SxxoZc7aRXRQdLyiema3ggUmYGIX8W.
+[2025-04-14 12:52:31 +0000] [1572] [INFO] Handling signal: winch
+DEBUG:requests_oauthlib.oauth2_session:Encoding `client_id` "701635406339-2o7aad8s7600s9t0abss6a9fheoiduch.apps.googleusercontent.com" with `client_secret` as Basic auth credentials.
+DEBUG:requests_oauthlib.oauth2_session:Requesting url https://oauth2.googleapis.com/token using method POST.
+DEBUG:requests_oauthlib.oauth2_session:Supplying headers {'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded'} and data {'grant_type': 'authorization_code', 'code': '4/0Ab_5qlni_PTe-rbX2z2-d1QS-vBgAxh19t7MIRYn8WfoY4jfIq_h95DrkFO-sOTabDNaSQ', 'redirect_uri': 'https://d4798cab-a1b2-402d-a101-c6f6d95cc1ba-00-1olygww69ulue.kirk.replit.dev/settings/google_callback'}
+DEBUG:requests_oauthlib.oauth2_session:Passing through key word arguments {'timeout': None, 'auth': <requests.auth.HTTPBasicAuth object at 0x7ff847f34b10>, 'verify': None, 'proxies': None, 'cert': None}.
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): oauth2.googleapis.com:443
+DEBUG:urllib3.connectionpool:https://oauth2.googleapis.com:443 "POST /token HTTP/1.1" 200 None
+DEBUG:requests_oauthlib.oauth2_session:Request to fetch token completed with status 200.
+DEBUG:requests_oauthlib.oauth2_session:Request url was https://oauth2.googleapis.com/token
+DEBUG:requests_oauthlib.oauth2_session:Request headers were {'User-Agent': 'python-requests/2.32.3', 'Accept-Encoding': 'gzip, deflate', 'Accept': 'application/json', 'Connection': 'keep-alive', 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': '236', 'Authorization': 'Basic NzAxNjM1NDA2MzM5LTJvN2FhZDhzNzYwMHM5dDBhYnNzNmE5Zmhlb2lkdWNoLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tOkdPQ1NQWC1lN1dIZDlIaThZWF85N2swdENDSURscWFkYzdH'}
+DEBUG:requests_oauthlib.oauth2_session:Request body was grant_type=authorization_code&code=4%2F0Ab_5qlni_PTe-rbX2z2-d1QS-vBgAxh19t7MIRYn8WfoY4jfIq_h95DrkFO-sOTabDNaSQ&redirect_uri=https%3A%2F%2Fd4798cab-a1b2-402d-a101-c6f6d95cc1ba-00-1olygww69ulue.kirk.replit.dev%2Fsettings%2Fgoogle_callback
+DEBUG:requests_oauthlib.oauth2_session:Response headers were {'Pragma': 'no-cache', 'Expires': 'Mon, 01 Jan 1990 00:00:00 GMT', 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Date': 'Mon, 14 Apr 2025 12:52:43 GMT', 'Content-Type': 'application/json; charset=utf-8', 'Vary': 'Origin, X-Origin, Referer', 'Content-Encoding': 'gzip', 'Server': 'scaffolding on HTTPServer2', 'X-XSS-Protection': '0', 'X-Frame-Options': 'SAMEORIGIN', 'X-Content-Type-Options': 'nosniff', 'Transfer-Encoding': 'chunked'} and content {
+  "access_token": "ya29.a0AZYkNZjQ3P8u21Zxe3Ue_p5a2KRgEkQoxrlrPGjMmNLLZbS2Ubz1H7d-IC6llCUVBqFCn6ykKlT5UQH7b3U43W_jojQWnCM8YHCkHo6xSQg9cGCV92M_YVsvv7GtRghZnqyKgCPOAECQqFdZ54KFaakbagZV5Bjqb9S1EzEaaCgYKAdwSARUSFQHGX2Mi02YoLUYR-99No3JZAdWIjA0175",
+  "expires_in": 3599,
+  "refresh_token": "1//06_8ulQyexBpSCgYIARAAGAYSNwF-L9IrMicp_IYEZtJkdI_nlw4G-ye6yyEI8VYw8qkxUY3iVYsIOVQxtgf7y3eRlU2wbB0YzN8",
+  "scope": "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send openid https://www.googleapis.com/auth/gmail.modify",
+  "token_type": "Bearer",
+  "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImM3ZTA0NDY1NjQ5ZmZhNjA2NTU3NjUwYzdlNjVmMGE4N2FlMDBmZTgiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI3MDE2MzU0MDYzMzktMm83YWFkOHM3NjAwczl0MGFic3M2YTlmaGVvaWR1Y2guYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI3MDE2MzU0MDYzMzktMm83YWFkOHM3NjAwczl0MGFic3M2YTlmaGVvaWR1Y2guYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NDEyMTU4MDM5MjU0MzY5ODEiLCJoZCI6Imlub3ZhaWxhYi5jb20iLCJlbWFpbCI6ImZlbGlwZUBpbm92YWlsYWIuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImF0X2hhc2giOiJ0REI1MTlZMFl4R2hEQ2I5TGY2T253IiwibmFtZSI6ImZlbGlwZSBnb21lcyIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS9BQ2c4b2NKc1lpUmZoV1JQOTVSMVRRaUhoN3N4QUx3Vldtb2RGU1B6U3YxUXpFRnlKUFVtdkE9czk2LWMiLCJnaXZlbl9uYW1lIjoiZmVsaXBlIiwiZmFtaWx5X25hbWUiOiJnb21lcyIsImlhdCI6MTc0NDYzNTE2MywiZXhwIjoxNzQ0NjM4NzYzfQ.ynh3wVqisEtXSz7nS3LL6bvCBXuazX2aO0F5cTqSMCX_Byt3r4InyQ6KAjSorBydQAcmOoApw4zz-sJnrCykz_LwdKoZtEJ91Dymhe1PoDRslLbnvoxX4URRA7M9EMmgg-czETijoyCwXEWA_bpqgF-YhX0uyrHDEpxI_FZ85q_waiBBixauzPCptdF7HCmtVZmPpAg3IXDfqRyApWJ7zI_wTpGGPE2-nSQEJ78U8Nkhoz7bOPRXP65P1_vqe9Y4vRjOR5PCl2G-gLZT2s-8okWiyduh87rHMUMaMcTi_eNDF3b8C20dxWfTAFkj3F-CfGjtiaT1eIyUWMwG9oQgEA"
+}.
+DEBUG:requests_oauthlib.oauth2_session:Invoking 0 token response hooks.
+ERROR:google_calendar:Error exchanging code for token: Scope has changed from "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events" to "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/gmail.modify openid https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile".
+ERROR:app:Error in Google OAuth callback: Scope has changed from "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events" to "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/gmail.modify openid https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile".
+[2025-04-14 12:52:43 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:43 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:43 +0000] [1572] [INFO] Handling signal: winch
+[2025-04-14 12:52:43 +0000] [1572] [INFO] Handling signal: winch

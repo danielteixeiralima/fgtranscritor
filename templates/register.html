@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark">
+                <h2 class="card-title">
+                    <i data-feather="user-plus"></i> Registro
+                </h2>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('register') }}" method="post">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Nome de usuário</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-feather="user"></i></span>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="form-text">Escolha um nome de usuário único</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">E-mail</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-feather="mail"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Senha</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-feather="key"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" required 
+                                   minlength="6">
+                        </div>
+                        <div class="form-text">Mínimo de 6 caracteres</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password_confirm" class="form-label">Confirmar senha</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-feather="key"></i></span>
+                            <input type="password" class="form-control" id="password_confirm" 
+                                   name="password_confirm" required minlength="6">
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Criar conta</button>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-secondary">Já tenho uma conta</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

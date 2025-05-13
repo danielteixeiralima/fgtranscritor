@@ -1,0 +1,138 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i data-feather="plus-circle"></i> Agendar Nova Reunião
+                </h2>
+                <div>
+                    <a href="{{ url_for('view_calendar') }}" class="btn btn-outline-secondary">
+                        <i data-feather="calendar"></i> Voltar à Agenda
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark">
+                    <h3 class="card-title mb-0">
+                        <i data-feather="edit-3"></i> Detalhes da Reunião
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('create_event') }}">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Título da Reunião</label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="description" name="description" rows="3" placeholder="Descreva o objetivo da reunião, tópicos a serem discutidos, etc."></textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_date" class="form-label">Data de Início</label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="start_time" class="form-label">Hora de Início</label>
+                                    <input type="time" class="form-control" id="start_time" name="start_time" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">Data de Término</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="end_time" class="form-label">Hora de Término</label>
+                                    <input type="time" class="form-control" id="end_time" name="end_time" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="attendees" class="form-label">Participantes (Emails separados por vírgula)</label>
+                            <input type="text" class="form-control" id="attendees" name="attendees" placeholder="Ex: usuario1@email.com, usuario2@email.com">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="agenda" class="form-label">Pauta da Reunião</label>
+                            <textarea class="form-control" id="agenda" name="agenda" rows="5" placeholder="Lista de tópicos a serem discutidos na reunião"></textarea>
+                            <div class="form-text">Esta pauta será salva e poderá ser usada depois para análise da reunião.</div>
+                        </div>
+                        
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i data-feather="save" class="me-2"></i> Agendar Reunião
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Define today's date as default
+    const today = new Date();
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
+    // Set default date to today
+    document.getElementById('start_date').value = formatDate(today);
+    document.getElementById('end_date').value = formatDate(today);
+    
+    // Set default time (current time + 1 hour)
+    const now = new Date();
+    const nextHour = new Date(now.getTime() + 60 * 60 * 1000);
+    const formatTime = (date) => {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+    };
+    
+    document.getElementById('start_time').value = formatTime(now);
+    document.getElementById('end_time').value = formatTime(nextHour);
+    
+    // End date changes with start date
+    document.getElementById('start_date').addEventListener('change', function() {
+        document.getElementById('end_date').value = this.value;
+    });
+});
+</script>
+{% endblock %}

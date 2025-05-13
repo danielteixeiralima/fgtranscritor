@@ -1,0 +1,243 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">
+                <i data-feather="list"></i> Todas as Reuniões
+            </h2>
+            <div>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary me-2">
+                    <i data-feather="home"></i> Dashboard
+                </a>
+                <a href="{{ url_for('new_meeting') }}" class="btn btn-primary">
+                    <i data-feather="plus"></i> Nova Análise
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros e Ordenação -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">
+                <i data-feather="filter"></i> Filtros e Ordenação
+            </h3>
+            {% if current_user.google_calendar_enabled %}
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="toggleAllMeetings" 
+                       {% if show_all %}checked{% endif %}
+                       onclick="toggleShowAll(this.checked)">
+                <label class="form-check-label text-light" for="toggleAllMeetings">
+                    Mostrar todas as reuniões
+                </label>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <form action="{{ url_for('list_meetings') }}" method="get" class="row g-3" id="filterForm">
+            <input type="hidden" id="show_all" name="show_all" value="{{ 'true' if show_all else 'false' }}">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Pesquisar por título:</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i data-feather="search" style="width: 16px; height: 16px;"></i>
+                    </span>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ current_search }}" placeholder="Pesquisar...">
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <label for="language" class="form-label">Filtrar por idioma:</label>
+                <select class="form-select" id="language" name="language">
+                    <option value="">Todos os idiomas</option>
+                    {% for lang in languages %}
+                        <option value="{{ lang }}" {% if lang == current_language %}selected{% endif %}>
+                            {{ lang|upper }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label for="sort_by" class="form-label">Ordenar por:</label>
+                <select class="form-select" id="sort_by" name="sort_by">
+                    <option value="created_at" {% if current_sort_by == 'created_at' %}selected{% endif %}>Data de criação</option>
+                    <option value="meeting_date" {% if current_sort_by == 'meeting_date' %}selected{% endif %}>Data da reunião</option>
+                    <option value="title" {% if current_sort_by == 'title' %}selected{% endif %}>Título</option>
+                    <option value="alignment_score" {% if current_sort_by == 'alignment_score' %}selected{% endif %}>Pontuação</option>
+                </select>
+            </div>
+            
+            <div class="col-md-2">
+                <label for="sort_order" class="form-label">Ordem:</label>
+                <select class="form-select" id="sort_order" name="sort_order">
+                    <option value="desc" {% if current_sort_order == 'desc' %}selected{% endif %}>Decrescente</option>
+                    <option value="asc" {% if current_sort_order == 'asc' %}selected{% endif %}>Crescente</option>
+                </select>
+            </div>
+            
+            <div class="col-12 text-end">
+                <a href="{{ url_for('list_meetings') }}" class="btn btn-secondary me-2">Limpar</a>
+                <button type="submit" class="btn btn-primary">Aplicar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de Reuniões -->
+<div class="card shadow-sm">
+    <div class="card-header bg-dark">
+        <h3 class="card-title mb-0">
+            <i data-feather="file-text"></i> Reuniões
+            {% if current_search or current_language %}
+                <span class="badge bg-secondary ms-2">Filtrado</span>
+            {% endif %}
+        </h3>
+    </div>
+    <div class="card-body">
+        {% if meetings %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Título</th>
+                        <th>Data da Reunião</th>
+                        <th>Data de Criação</th>
+                        <th>Idioma</th>
+                        <th>Pontuação</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for meeting in meetings %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" class="text-decoration-none">
+                                {{ meeting.title }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if meeting.meeting_date %}
+                                {{ meeting.meeting_date.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                <span class="text-muted">Não especificada</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ meeting.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            <span class="badge bg-info text-dark">
+                                {{ meeting.language|upper }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" 
+                                        style="width: {{ (meeting.alignment_score or 0) * 10 }}%;" 
+                                        aria-valuenow="{{ meeting.alignment_score or 0 }}" 
+                                        aria-valuemin="0" aria-valuemax="10">
+                                    </div>
+                                </div>
+                                <span>
+                                    {% if meeting.alignment_score is not none %}
+                                        {{ "%.1f"|format(meeting.alignment_score) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                {% if meeting.results_json %}
+                                    <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" title="Ver detalhes">
+                                        <i data-feather="eye"></i>
+                                    </a>
+                                {% elif meeting.google_calendar_event_id %}
+                                    <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" title="Ver detalhes">
+                                        <i data-feather="eye"></i>
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" title="Ver detalhes">
+                                        <i data-feather="eye"></i>
+                                    </a>
+                                {% endif %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        title="Excluir" data-bs-toggle="modal" 
+                                        data-bs-target="#deleteModal{{ meeting.id }}">
+                                    <i data-feather="trash-2"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Modal de Confirmação -->
+                            <div class="modal fade" id="deleteModal{{ meeting.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Confirmar exclusão</h5>
+                                            <button type="button" class="btn-close" 
+                                                    data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            Tem certeza que deseja excluir a análise 
+                                            "<strong>{{ meeting.title }}</strong>"?
+                                            Esta ação não pode ser desfeita.
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" 
+                                                    data-bs-dismiss="modal">Cancelar</button>
+                                            <form action="{{ url_for('delete_meeting', meeting_id=meeting.id) }}" 
+                                                  method="post">
+                                                <button type="submit" class="btn btn-danger">Excluir</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            {% if current_search or current_language %}
+                <i data-feather="filter" class="text-muted mb-3" style="width: 64px; height: 64px;"></i>
+                <h3 class="text-muted">Nenhuma reunião encontrada com os filtros atuais</h3>
+                <p class="mb-4">Tente ajustar seus critérios de busca ou <a href="{{ url_for('list_meetings') }}">remova os filtros</a>.</p>
+            {% else %}
+                <i data-feather="clipboard" class="text-muted mb-3" style="width: 64px; height: 64px;"></i>
+                <h3 class="text-muted">Nenhuma análise encontrada</h3>
+                <p class="mb-4">Você ainda não realizou nenhuma análise de reunião.</p>
+                <a href="{{ url_for('new_meeting') }}" class="btn btn-primary btn-lg">
+                    <i data-feather="plus"></i> Criar Primeira Análise
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Função para alternar entre mostrar todas as reuniões ou apenas as do calendário atual
+    function toggleShowAll(checked) {
+        // Atualiza o campo hidden
+        document.getElementById('show_all').value = checked ? 'true' : 'false';
+        
+        // Envia o formulário
+        document.getElementById('filterForm').submit();
+    }
+</script>
+{% endblock %}

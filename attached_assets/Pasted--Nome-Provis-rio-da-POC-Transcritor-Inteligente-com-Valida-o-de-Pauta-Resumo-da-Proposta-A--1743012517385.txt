@@ -1,0 +1,62 @@
+💡 Nome Provisório da POC:
+Transcritor Inteligente com Validação de Pauta
+
+📌 Resumo da Proposta:
+A POC consiste em um sistema simples e funcional onde o usuário pode inserir a pauta de uma reunião e sua transcrição completa, e o sistema utiliza inteligência artificial para analisar se os temas da pauta foram efetivamente abordados durante a reunião.
+
+O foco não é ser um produto final, mas sim uma prova de conceito clara, objetiva e executável rapidamente, que demonstra um diferencial real no uso de IA em ambientes corporativos — algo concreto para ser apresentado no Web Summit.
+
+🧩 Como Funciona:
+Entrada da Pauta:
+
+O usuário define previamente os tópicos ou objetivos da reunião, escrevendo a pauta diretamente na interface da plataforma.
+
+Entrada da Transcrição:
+
+Após a reunião, o usuário insere a transcrição completa (obtida por qualquer ferramenta de transcrição, como Tactiq ou Whisper).
+
+Análise com IA:
+
+A IA compara a pauta com a transcrição, identificando:
+
+Quais tópicos foram abordados de fato.
+
+Quais tópicos foram ignorados.
+
+Pontos adicionais discutidos fora da pauta.
+
+Similaridade entre o que foi dito e o que estava previsto.
+
+Entrega de Resultados:
+
+O sistema gera automaticamente um relatório final com:
+
+Checklist de itens da pauta e status (abordado ou não).
+
+Um pequeno resumo da reunião com base no conteúdo transcrito.
+
+Insights sobre alinhamento entre pauta e execução da reunião.
+
+Possível sugestão de próximos passos, caso a pauta não tenha sido concluída.
+
+🧠 Dores que a POC resolve:
+Falta de foco em reuniões: ajuda a garantir que os assuntos importantes foram tratados.
+
+Dificuldade em acompanhar reuniões longas ou complexas: transforma uma transcrição extensa em um diagnóstico direto.
+
+Ausência de accountability: mostra, com base objetiva, se o que foi prometido ou previsto realmente foi executado.
+
+Perda de informações-chave: preserva o conteúdo da reunião de forma organizada e acessível.
+
+✅ O que a POC entrega:
+Comparação automática entre pauta e transcrição.
+
+Relatório de aderência aos tópicos.
+
+Identificação de lacunas na reunião.
+
+Relatório-resumo de forma simples e prática.
+
+Interface mínima para input manual (pauta e transcrição).
+
+Base para evolução futura (integração com agenda, gravação automática, etc.).

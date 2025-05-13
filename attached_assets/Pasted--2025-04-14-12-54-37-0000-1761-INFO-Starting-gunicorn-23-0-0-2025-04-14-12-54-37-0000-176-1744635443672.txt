@@ -1,0 +1,56 @@
+[2025-04-14 12:54:37 +0000] [1761] [INFO] Starting gunicorn 23.0.0
+[2025-04-14 12:54:37 +0000] [1761] [INFO] Listening at: http://0.0.0.0:5000 (1761)
+[2025-04-14 12:54:37 +0000] [1761] [INFO] Using worker: sync
+[2025-04-14 12:54:37 +0000] [1772] [INFO] Booting worker with pid: 1772
+[2025-04-14 12:54:38 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:38 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:38 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:38 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:38 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:38 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:38 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:38 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:38 +0000] [1761] [INFO] Handling signal: winch
+DEBUG:app:Database tables created or confirmed
+INFO:google_calendar:
+Para configurar o Google Calendar, você precisa:
+1. Acessar: https://console.cloud.google.com/apis/credentials
+2. Criar um novo projeto e habilitar a API do Google Calendar
+3. Criar um novo Cliente OAuth
+4. Adicionar https://d4798cab-a1b2-402d-a101-c6f6d95cc1ba-00-1olygww69ulue.kirk.replit.dev/settings/google_callback como URI de redirecionamento autorizado
+5. Definir as variáveis de ambiente GOOGLE_OAUTH_CLIENT_ID e GOOGLE_OAUTH_CLIENT_SECRET
+
+[2025-04-14 12:54:40 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:40 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:40 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:40 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:40 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:40 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:54:41 +0000] [1761] [INFO] Handling signal: winch
+DEBUG:requests_oauthlib.oauth2_session:Generated new state oJkhYXSLde8mEdUas05roQw8dKdoVY.
+[2025-04-14 12:56:55 +0000] [1761] [INFO] Handling signal: winch
+DEBUG:requests_oauthlib.oauth2_session:Encoding `client_id` "701635406339-2o7aad8s7600s9t0abss6a9fheoiduch.apps.googleusercontent.com" with `client_secret` as Basic auth credentials.
+DEBUG:requests_oauthlib.oauth2_session:Requesting url https://oauth2.googleapis.com/token using method POST.
+DEBUG:requests_oauthlib.oauth2_session:Supplying headers {'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded'} and data {'grant_type': 'authorization_code', 'code': '4/0Ab_5qlmvxRQ-t9f7Yv1jW6eXtMxi_noD75APovbd0UZFtS4i1C6kiLahOckPGZVI4FcR0w', 'redirect_uri': 'https://d4798cab-a1b2-402d-a101-c6f6d95cc1ba-00-1olygww69ulue.kirk.replit.dev/settings/google_callback'}
+DEBUG:requests_oauthlib.oauth2_session:Passing through key word arguments {'timeout': None, 'auth': <requests.auth.HTTPBasicAuth object at 0x7fcaa8e15810>, 'verify': None, 'proxies': None, 'cert': None}.
+DEBUG:urllib3.connectionpool:Starting new HTTPS connection (1): oauth2.googleapis.com:443
+DEBUG:urllib3.connectionpool:https://oauth2.googleapis.com:443 "POST /token HTTP/1.1" 200 None
+DEBUG:requests_oauthlib.oauth2_session:Request to fetch token completed with status 200.
+DEBUG:requests_oauthlib.oauth2_session:Request url was https://oauth2.googleapis.com/token
+DEBUG:requests_oauthlib.oauth2_session:Request headers were {'User-Agent': 'python-requests/2.32.3', 'Accept-Encoding': 'gzip, deflate', 'Accept': 'application/json', 'Connection': 'keep-alive', 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': '236', 'Authorization': 'Basic NzAxNjM1NDA2MzM5LTJvN2FhZDhzNzYwMHM5dDBhYnNzNmE5Zmhlb2lkdWNoLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tOkdPQ1NQWC1lN1dIZDlIaThZWF85N2swdENDSURscWFkYzdH'}
+DEBUG:requests_oauthlib.oauth2_session:Request body was grant_type=authorization_code&code=4%2F0Ab_5qlmvxRQ-t9f7Yv1jW6eXtMxi_noD75APovbd0UZFtS4i1C6kiLahOckPGZVI4FcR0w&redirect_uri=https%3A%2F%2Fd4798cab-a1b2-402d-a101-c6f6d95cc1ba-00-1olygww69ulue.kirk.replit.dev%2Fsettings%2Fgoogle_callback
+DEBUG:requests_oauthlib.oauth2_session:Response headers were {'Expires': 'Mon, 01 Jan 1990 00:00:00 GMT', 'Cache-Control': 'no-cache, no-store, max-age=0, must-revalidate', 'Pragma': 'no-cache', 'Date': 'Mon, 14 Apr 2025 12:57:06 GMT', 'Content-Type': 'application/json; charset=utf-8', 'Vary': 'Origin, X-Origin, Referer', 'Content-Encoding': 'gzip', 'Server': 'scaffolding on HTTPServer2', 'X-XSS-Protection': '0', 'X-Frame-Options': 'SAMEORIGIN', 'X-Content-Type-Options': 'nosniff', 'Transfer-Encoding': 'chunked'} and content {
+  "access_token": "ya29.a0AZYkNZhwP-MsIcPutu4XSkns_IgOzBHu38mON-8H5MPGOdUvMZFlgCwVtimvBOT-IS8IsOZlZ_s0R04_q8VqnIeWKC22XePx8tKMMlssa5uC7YAZD7JRuI_XfG--FRpg9GO519qagIgd1JEkjSoSy8LRzYiJks3lEb6U-eOwaCgYKAaYSARUSFQHGX2MiDikenHRsSI30pz_oSbyFag0175",
+  "expires_in": 3599,
+  "refresh_token": "1//06nunwmqvpsAxCgYIARAAGAYSNwF-L9Ir1_Ho87LS66uyQqRnD2zLVN6wzgTK8Dd8heirPBB0efoM8_rIfMkVhEzwUFBclh-XbFU",
+  "scope": "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.labels https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid https://www.googleapis.com/auth/gmail.readonly",
+  "token_type": "Bearer",
+  "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImM3ZTA0NDY1NjQ5ZmZhNjA2NTU3NjUwYzdlNjVmMGE4N2FlMDBmZTgiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI3MDE2MzU0MDYzMzktMm83YWFkOHM3NjAwczl0MGFic3M2YTlmaGVvaWR1Y2guYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI3MDE2MzU0MDYzMzktMm83YWFkOHM3NjAwczl0MGFic3M2YTlmaGVvaWR1Y2guYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NDEyMTU4MDM5MjU0MzY5ODEiLCJoZCI6Imlub3ZhaWxhYi5jb20iLCJlbWFpbCI6ImZlbGlwZUBpbm92YWlsYWIuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImF0X2hhc2giOiJFZkFBZzRXSVpHOFFxOTlOaEs0U0FnIiwibmFtZSI6ImZlbGlwZSBnb21lcyIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS9BQ2c4b2NKc1lpUmZoV1JQOTVSMVRRaUhoN3N4QUx3Vldtb2RGU1B6U3YxUXpFRnlKUFVtdkE9czk2LWMiLCJnaXZlbl9uYW1lIjoiZmVsaXBlIiwiZmFtaWx5X25hbWUiOiJnb21lcyIsImlhdCI6MTc0NDYzNTQyNiwiZXhwIjoxNzQ0NjM5MDI2fQ.PBV9bUD8nUQYJ-jT1lW5NVUkVDp4hz4LpJCB9X6d0qREq-qlWCnH_xlJ_J7c3RGh-FtjaPG3PJsLuzw7H3YgMxS2K408QVCPU6-IgYiPSGWaxn2dDbiBOPFFP1N0PO7VQhGV9nw3e-55KC0FUyevLWMmQzWndMcbyOQxYPitrxMB5vXZT5wXAzAZCVuBtdP5CInbj9D4tV4TYy1TzkhdwPnDqtdkF90valvJhTmNDIX9ZcaSJmw3Sw-goLh5CmzgprfxsEIU40lLGCwVBKa1hs6HXCjeFTy93qdCggiUiMJQbvJEGkKfSsvAJTFb5cvZgvqJ0szvCLHKGBuIwMR5Ig"
+}.
+DEBUG:requests_oauthlib.oauth2_session:Invoking 0 token response hooks.
+DEBUG:requests_oauthlib.oauth2_session:Obtained token {'access_token': 'ya29.a0AZYkNZhwP-MsIcPutu4XSkns_IgOzBHu38mON-8H5MPGOdUvMZFlgCwVtimvBOT-IS8IsOZlZ_s0R04_q8VqnIeWKC22XePx8tKMMlssa5uC7YAZD7JRuI_XfG--FRpg9GO519qagIgd1JEkjSoSy8LRzYiJks3lEb6U-eOwaCgYKAaYSARUSFQHGX2MiDikenHRsSI30pz_oSbyFag0175', 'expires_in': 3599, 'refresh_token': '1//06nunwmqvpsAxCgYIARAAGAYSNwF-L9Ir1_Ho87LS66uyQqRnD2zLVN6wzgTK8Dd8heirPBB0efoM8_rIfMkVhEzwUFBclh-XbFU', 'scope': ['https://www.googleapis.com/auth/drive.readonly', 'https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/calendar.readonly', 'https://www.googleapis.com/auth/gmail.labels', 'https://www.googleapis.com/auth/gmail.modify', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile', 'openid', 'https://www.googleapis.com/auth/gmail.readonly'], 'token_type': 'Bearer', 'id_token': 'eyJhbGciOiJSUzI1NiIsImtpZCI6ImM3ZTA0NDY1NjQ5ZmZhNjA2NTU3NjUwYzdlNjVmMGE4N2FlMDBmZTgiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJhenAiOiI3MDE2MzU0MDYzMzktMm83YWFkOHM3NjAwczl0MGFic3M2YTlmaGVvaWR1Y2guYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI3MDE2MzU0MDYzMzktMm83YWFkOHM3NjAwczl0MGFic3M2YTlmaGVvaWR1Y2guYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTM5NDEyMTU4MDM5MjU0MzY5ODEiLCJoZCI6Imlub3ZhaWxhYi5jb20iLCJlbWFpbCI6ImZlbGlwZUBpbm92YWlsYWIuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImF0X2hhc2giOiJFZkFBZzRXSVpHOFFxOTlOaEs0U0FnIiwibmFtZSI6ImZlbGlwZSBnb21lcyIsInBpY3R1cmUiOiJodHRwczovL2xoMy5nb29nbGV1c2VyY29udGVudC5jb20vYS9BQ2c4b2NKc1lpUmZoV1JQOTVSMVRRaUhoN3N4QUx3Vldtb2RGU1B6U3YxUXpFRnlKUFVtdkE9czk2LWMiLCJnaXZlbl9uYW1lIjoiZmVsaXBlIiwiZmFtaWx5X25hbWUiOiJnb21lcyIsImlhdCI6MTc0NDYzNTQyNiwiZXhwIjoxNzQ0NjM5MDI2fQ.PBV9bUD8nUQYJ-jT1lW5NVUkVDp4hz4LpJCB9X6d0qREq-qlWCnH_xlJ_J7c3RGh-FtjaPG3PJsLuzw7H3YgMxS2K408QVCPU6-IgYiPSGWaxn2dDbiBOPFFP1N0PO7VQhGV9nw3e-55KC0FUyevLWMmQzWndMcbyOQxYPitrxMB5vXZT5wXAzAZCVuBtdP5CInbj9D4tV4TYy1TzkhdwPnDqtdkF90valvJhTmNDIX9ZcaSJmw3Sw-goLh5CmzgprfxsEIU40lLGCwVBKa1hs6HXCjeFTy93qdCggiUiMJQbvJEGkKfSsvAJTFb5cvZgvqJ0szvCLHKGBuIwMR5Ig', 'expires_at': 1744639025.087986}.
+ERROR:google_calendar:Error exchanging code for token: 'list' object has no attribute 'split'
+ERROR:app:Error in Google OAuth callback: 'list' object has no attribute 'split'
+[2025-04-14 12:57:06 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:57:06 +0000] [1761] [INFO] Handling signal: winch
+[2025-04-14 12:57:06 +0000] [1761] [INFO] Handling signal: winch

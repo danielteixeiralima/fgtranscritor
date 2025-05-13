@@ -1,0 +1,229 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">
+                <i data-feather="home"></i> Dashboard
+            </h2>
+            <div>
+                <a href="{{ url_for('list_meetings') }}" class="btn btn-outline-secondary me-2">
+                    <i data-feather="list"></i> Ver Todas as Reuniões
+                </a>
+                <a href="{{ url_for('new_meeting') }}" class="btn btn-primary">
+                    <i data-feather="plus"></i> Nova Análise
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Web Summit Demo Banner -->
+<div class="card shadow-sm mb-4 bg-dark text-white">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-2"><i data-feather="star"></i> Demonstração Web Summit</h3>
+                <p class="mb-0">Demonstração especial para apresentações ao vivo com simulação de áudio e análise em tempo real.</p>
+            </div>
+            <div>
+                <a href="{{ url_for('live_demo') }}" class="btn btn-outline-light">
+                    <i data-feather="play-circle"></i> Acessar Demo
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-4 mb-md-0">
+        <div class="card shadow-sm h-100 border-primary">
+            <div class="card-body text-center">
+                <i data-feather="file-text" class="text-primary mb-3" style="width: 48px; height: 48px;"></i>
+                <h3 class="display-4 fw-bold text-primary">{{ stats.total_meetings }}</h3>
+                <p class="text-muted">Total de Reuniões</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4 mb-md-0">
+        <div class="card shadow-sm h-100 border-success">
+            <div class="card-body text-center">
+                <i data-feather="calendar" class="text-success mb-3" style="width: 48px; height: 48px;"></i>
+                <h3 class="display-4 fw-bold text-success">{{ stats.meetings_this_month }}</h3>
+                <p class="text-muted">Reuniões este Mês</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4 mb-md-0">
+        <div class="card shadow-sm h-100 border-warning">
+            <div class="card-body text-center">
+                <i data-feather="bar-chart-2" class="text-warning mb-3" style="width: 48px; height: 48px;"></i>
+                <h3 class="display-4 fw-bold text-warning">{{ "%.1f"|format(stats.avg_alignment_score) }}</h3>
+                <p class="text-muted">Pontuação Média</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100 border-info">
+            <div class="card-body text-center">
+                <i data-feather="globe" class="text-info mb-3" style="width: 48px; height: 48px;"></i>
+                <h3 class="display-4 fw-bold text-info">{{ stats.languages|length }}</h3>
+                <p class="text-muted">Idiomas Utilizados</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Distribuição de Idiomas -->
+{% if stats.languages %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark">
+                <h3 class="card-title mb-0">
+                    <i data-feather="globe"></i> Distribuição de Idiomas
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for lang_data in stats.languages %}
+                    <div class="col-md-3 col-6 mb-3">
+                        <div class="card h-100 bg-dark">
+                            <div class="card-body text-center">
+                                <div class="h4 mb-2">{{ lang_data.language|upper }}</div>
+                                <div class="display-5 fw-bold text-info">{{ lang_data.count }}</div>
+                                <div class="text-muted">reuniões</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Reuniões Recentes -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-dark">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">
+                        <i data-feather="clock"></i> Reuniões Recentes
+                    </h3>
+                    <a href="{{ url_for('list_meetings') }}" class="btn btn-sm btn-outline-light">
+                        Ver Todas <i data-feather="arrow-right" class="ms-1"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                {% if meetings %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Data</th>
+                                <th>Idioma</th>
+                                <th>Pontuação</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for meeting in meetings %}
+                            <tr>
+                                <td>
+                                    <strong>{{ meeting.title }}</strong>
+                                </td>
+                                <td>
+                                    {% if meeting.meeting_date %}
+                                        {{ meeting.meeting_date.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        <span class="text-muted">Não especificada</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info text-dark">
+                                        {{ meeting.language|upper }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" 
+                                            style="width: {{ (meeting.alignment_score or 0) * 10 }}%;" 
+                                            aria-valuenow="{{ meeting.alignment_score or 0 }}" 
+                                            aria-valuemin="0" aria-valuemax="10">
+                                        </div>
+                                    </div>
+                                    <small class="d-block text-end mt-1">
+                                        {% if meeting.alignment_score is not none %}
+                                            {{ "%.1f"|format(meeting.alignment_score) }}/10
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" 
+                                            class="btn btn-sm btn-outline-primary">
+                                            <i data-feather="eye"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal{{ meeting.id }}">
+                                            <i data-feather="trash-2"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Modal de Confirmação -->
+                                    <div class="modal fade" id="deleteModal{{ meeting.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Confirmar exclusão</h5>
+                                                    <button type="button" class="btn-close" 
+                                                            data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Tem certeza que deseja excluir a análise 
+                                                    "<strong>{{ meeting.title }}</strong>"?
+                                                    Esta ação não pode ser desfeita.
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" 
+                                                            data-bs-dismiss="modal">Cancelar</button>
+                                                    <form action="{{ url_for('delete_meeting', meeting_id=meeting.id) }}" 
+                                                            method="post">
+                                                        <button type="submit" class="btn btn-danger">Excluir</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i data-feather="clipboard" class="text-muted mb-3" style="width: 64px; height: 64px;"></i>
+                    <h3 class="text-muted">Nenhuma análise encontrada</h3>
+                    <p class="mb-4">Você ainda não realizou nenhuma análise de reunião.</p>
+                    <a href="{{ url_for('new_meeting') }}" class="btn btn-primary btn-lg">
+                        <i data-feather="plus"></i> Criar Primeira Análise
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

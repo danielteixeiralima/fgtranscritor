@@ -1,0 +1,100 @@
+entioned"\n            ],\n            "directions": [\n                "string - strategic directions, policies, or decisions established during the meeting"\n            ],\n            "language": "pt" - include this field with the detected language code\n        }\n        '}, {'role': 'user', 'content': "\n        ### MEETING AGENDA:\n         BLOCO 1 — ABERTURA & POSICIONAMENTO\r\nQual é a missão da inovAI.lab?\r\n\r\nComo você explicaria o que é a inovAI.lab em uma frase simples e poderosa?\r\n\r\nPor que a inovAI.lab existe? Que problema do mundo ou do mercado ela resolve?\r\n\r\nComo surgiu a ideia de criar a inovAI.lab?\r\n\r\nQual é a grande visão de futuro da empresa?\r\n\r\n🔹 BLOCO 2 — DIFERENCIAIS E VALORES\r\nO que torna a inovAI.lab diferente de outras empresas de IA no mercado?\r\n\r\nQual é o maior valor que entregamos para os nossos clientes?\r\n\r\nComo a inovAI.lab equilibra tecnologia com humanização?\r\n\r\nO que significa para vocês “Tempo é Poder”?\r\n\r\nQual é o papel do design, da experiência e da personalização nas soluções da inovAI.lab?\r\n\r\n🔹 BLOCO 3 — METODOLOGIA DE ENTREGA\r\nComo funciona na prática o passo a passo de entrega da inovAI.lab (Imersão, Identificação, Construção, Entrega, Otimização)?\r\n\r\nQual é o tempo médio para entregar uma primeira solução funcional?\r\n\r\nO que é cocriar com agilidade e como isso acontece com os clientes?\r\n\r\nComo vocês garantem que a solução entregue realmente gera impacto no dia a dia do cliente?\r\n\r\n🔹 BLOCO 4 — CASOS REAIS (Case Aviação, Educação, Sá Cavalcante)\r\nNo Case Aviação, qual era o problema e qual foi a transformação gerada pela IA?\r\n\r\nNo Case Educação, como a IA contribuiu para criar valor emocional e educativo?\r\n\r\nNo Case Sá Cavalcante, o que significa ter 100% de faturamento autônomo?\r\n\r\nO que todos esses cases têm em comum em relação ao impacto gerado?\n        \n        ### MEETING TRANSCRIPTION:\n        Vamos lá, vou seguir o roteiro aqui de algumas perguntas e vou respondendo aqui para poder contar o documento para a Agila. Deixa eu ver se está pegando a transcrição aqui. Alô, alô, alô! Pegou. Deixa eu pegar aqui para as perguntas. Pô, esse tactic não está funcionando direito não, cara. Vamos lá. Qual é a missão da Innova eLab? Aí vamos começar com essa daqui que a gente respondeu aqui. Nosso verdadeiro produto não é código, é tempo. Criamos inteligências incansáveis para que você tenha mais momentos livres, menos tarefas repetitivas e um dia mais criativo. Como pequenos limagos digitais, transformamos segundos perdidos em oportunidades. Enquanto o nosso AI trabalha, você aproveita o que realmente importa. Empregamos horas de volta para o ser humano. Tudo o que a empresa faz tem que ser guiado pela pergunta. Estamos economizando tempo real para alguém? Como você explicaria o que é Innova AI em uma frase simples e poderosa? Vamos procurar essa frase aqui. Está aqui. A AI não aumenta a vida, mas devolve o que há de mais valioso nela, o seu tempo. Por que a Innova eLab existe? Que problema do mundo ou do mercado ela resolve? Ela resolve exatamente o problema do mercado hoje de inteligência artificial aplicada para se ganhar esse tempo, para melhorar isso, para dar mais espaço para o ser humano estar nesse lugar de criação, de ideias, enfim, de brainstorm, de inovação do que fazendo tarefas repetitivas. E o problema do mundo que ela resolve é essa falta de personalização da inteligência artificial. Que hoje o que a gente vê aí é muito PowerPoint, muita teoria e pouca prática. Como surgiu a ideia de criar a Innova eLab? A Innova eLab surgiu exatamente em cima dessa ideia. Porque de criar soluções de AI que realmente se adequem a problemas reais dos nossos clientes, das pessoas. Porque não adianta nada você ter um chat GPT que te responde tudo lá ou qualquer inteligência que é muito inteligente, mas que na verdade ela não faz nada para você na sua rotina, no seu dia a dia para te livrar esse tempo, para te devolver esse tempo com tarefas repetitivas que você faz hoje que podem ser feitas com a inteligência artificial. Qual é a grande visão de futuro da empresa? A grande visão de futuro da empresa é a gente colocar o ser humano no lugar dele, no lugar de humano mesmo e não de que faz coisas repetitivas ali como um robô. Já que a inteligência artificial consegue fazer isso. Para que se tenha humanos pensando em problemas que hoje a gente não consegue nem imaginar porque a gente tem que fazer essas tarefas repetitivas. Diferenciais e valores. O que torna a Innova AI diferente de outras empresas de AI no mercado? A personalização. A nossa ideia é personalizar. Não é fazer produtos que atendam um cliente, um grupo de clientes específico em nenhum setor específico, mas sim produtos que atendam projetos que atendam especificamente a dor de cada cliente de forma personalizada. Qual é o maior valor que entregamos para os nossos clientes? Tempo. É dar mais tempo para os funcionários, para as empresas, para o indivíduo poder ter mais esses momentos de criação criativa mesmo e de brainstorming, de inovação, mas nesse lugar. Como a Innova AI equilibra a tecnologia com humanização? Equilibra dessa forma, usando a tecnologia para o ser humano poder ser mais humano, poder ter mais tempo ali para poder ter mais tempo de pensamento crítico, essas coisas. O que significa para você tempo é poder? A única coisa que a gente não consegue vender hoje e nem comprar é tempo. Quer dizer, vender a gente até consegue, mas a gente não consegue comprar tempo. Então, o tempo é poder é se você tiver um controle total do seu tempo, das suas 24 horas, você vai ser muito mais produtivo, você vai conseguir alcançar os seus objetivos de forma muito mais rápida e simples do que você ter que ficar fazendo, usando o seu tempo, as suas 24 horas para poder, sei lá, resolver coisas que você precisa resolver todo dia, como fazer um lançamento de uma nota fiscal ou qualquer coisa do tipo. Qual é o papel do design, da experiência e da personalização nas soluções da Innova AI? Todos eles na base da personalização, da forma como o cliente precisa, seja no design, seja na experiência ou seja na personalização, tudo isso é feito de forma personalizada para cada dor, para cada projeto desenvolvido para o cliente, seja um produto, seja uma automação, um agente ou qualquer coisa que seja. Como funciona na prática o passo a passo de entrega da Innova AI Lab? A gente faz uma imersão no primeiro momento, onde a gente encrenquista todos os times, a gente faz um organograma para saber quais são os times e as pessoas que compõem aquele time. Depois disso, com a transcrição disso, de todo mundo, a gente faz a identificação dos principais processos, do tempo que cada processo demora, enfim, e consegue identificar onde a gente consegue ter mais ganhos para fazer as coisas mais fáceis e que vão ter mais um resultado prático muito rápido. A construção, que é em uma semana, a gente já tem uma primeira versão para apresentar para esse cliente que está tendo essa dor atendida e a gente poder discutir aquilo dali, ele testar e ir testando, para nas próximas três semanas aquilo estar entregue e ele usando aquilo dali na prática. Na parte da otimização é continuar mantendo tanto a criação de novos em outros processos como a substituição até dos que a gente criou antigamente com a evolução da tecnologia das inteligências artificiais, de fazer ele fazer mais coisas, de ser mais completo, dele ser mais inteligente, enfim. Qual o tempo médio para entregar uma primeira solução funcional? Dependendo da solução, em 45 dias a gente entrega ela. Eu digo dependendo da solução porque tem soluções que a gente consegue entregar até com prazo menor, mas uma primeira versão na primeira semana e aí a gente sempre faz um call com o cliente que está naquilo dali para mostrar para ele, ouvir ele e construindo isso junto, até chegar na parte da entrega. E aí a gente tem conseguido entregar isso em 45 dias. Como você garante que a solução entregue realmente gere impacto no dia a dia do cliente? Dependendo do tempo que ele ganha depois que aquilo dali está funcionando. Então a ideia é exatamente criar coisas que gerem ganho de tempo para a gente poder livrar as pessoas para fazer outras coisas. Então isso é sentido meio que na prática do cliente. Agora vamos ao quarto bloco que é casos reais. Case de aviação, educação e sacavalcante. No case de aviação, qual era o problema e qual foi a transformação gerada pela AI? O problema era que o cliente tinha um sistema que era fundado em 1996 num banco de dados muito antigo e tudo mais e ele já tinha assinado um sistema da Salesforce chamado AvSites, que ele... que é voltado para o setor de aviação. Só que ele não conseguia fazer a migração desses dados porque a base era muito antiga, enfim. O seu esforço precisava de um arquivo formatado, os dados vinculados e tudo mais. E a gente criou alguns agentes que faziam desde a checagem nesse banco de dados, né? Até passando pelo Scrum desse banco de dados, a validação disso, a auditoria disso. E depois os agentes que... depois dessa...\n        \n        Analyze the transcription against the agenda items to determine:\n        1. Which agenda items were addressed and which were not\n        2. What additional topics were discussed that weren't on the agenda\n        3. How closely the meeting followed the agenda\n        4. A brief summary of the meeting\n        5. Key insights about the meeting's effectiveness\n        6. Recommended next steps based on the meeting outcomes\n        7. Action items with clear responsibilities mentioned during the meeting\n        8. Strategic directions or decisions established during the meeting\n        \n        REMEMBER: Respond in the same language as the agenda and transcription (pt)\n        "}], 'model': 'gpt-4o', 'response_format': {'type': 'json_object'}, 'temperature': 0.5}}
+DEBUG:openai._base_client:Sending HTTP Request: POST https://api.openai.com/v1/chat/completions
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'POST']>
+[2025-04-08 17:41:00 +0000] [1190] [CRITICAL] WORKER TIMEOUT (pid:1201)
+DEBUG:httpcore.http11:receive_response_headers.failed exception=SystemExit(1)
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+[2025-04-08 17:41:00 +0000] [1201] [ERROR] Error handling request /process_demo_recording
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/app.py", line 572, in process_demo_recording
+    results = analyze_meeting(agenda, transcription)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/openai_service.py", line 229, in analyze_meeting
+    response = client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_utils/_utils.py", line 279, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/resources/chat/completions/completions.py", line 914, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 919, in request
+    return self._request(
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 955, in _request
+    response = self._client.send(
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 914, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/connection.py", line 103, in handle_request
+    return self._connection.handle_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 136, in handle_request
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 106, in handle_request
+    ) = self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 177, in _receive_response_headers
+    event = self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 217, in _receive_event
+    data = self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_backends/sync.py", line 128, in read
+    return self._sock.recv(max_bytes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/ssl.py", line 1295, in recv
+    return self.read(buflen)
+           ^^^^^^^^^^^^^^^^^
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/ssl.py", line 1168, in read
+    return self._sslobj.read(len)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-04-08 17:41:00 +0000] [1201] [INFO] Worker exiting (pid: 1201)
+[2025-04-08 17:41:00 +0000] [1310] [INFO] Booting worker with pid: 1310
+DEBUG:app:Database tables created or confirmed

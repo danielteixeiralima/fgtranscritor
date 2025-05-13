@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-dark">
+                <h2 class="card-title">
+                    <i data-feather="file-plus"></i> Nova Análise de Reunião
+                </h2>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('analyze') }}" method="post">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Título da Reunião</label>
+                        <input type="text" class="form-control" id="title" name="title" 
+                               placeholder="Ex: Reunião de Planejamento Estratégico" required>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="meeting_date" class="form-label">Data da Reunião</label>
+                            <input type="date" class="form-control" id="meeting_date" name="meeting_date">
+                            <div class="form-text">Opcional - Data em que a reunião ocorreu</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="agenda" class="form-label">Pauta da Reunião</label>
+                        <textarea class="form-control" id="agenda" name="agenda" rows="5" required
+                                  placeholder="Digite aqui os tópicos e objetivos da sua reunião..."></textarea>
+                        <div class="form-text">Liste cada tópico preferencialmente em uma linha separada</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="transcription" class="form-label">Transcrição da Reunião</label>
+                        <textarea class="form-control" id="transcription" name="transcription" rows="10" required
+                                  placeholder="Cole aqui a transcrição completa da sua reunião..."></textarea>
+                        <div class="form-text">Cole a transcrição completa da reunião. O idioma será detectado automaticamente.</div>
+                    </div>
+                    
+                    <div class="alert alert-info" role="alert">
+                        <i data-feather="info" class="me-2"></i>
+                        <strong>Nota:</strong> A análise pode levar alguns segundos, dependendo do tamanho da transcrição.
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i data-feather="search"></i> Analisar Reunião
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

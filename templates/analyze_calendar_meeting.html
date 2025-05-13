@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">
+                        <i data-feather="calendar"></i> Analisar Reunião do Calendário
+                    </h3>
+                    <a href="{{ url_for('view_calendar') }}" class="btn btn-outline-secondary btn-sm">
+                        <i data-feather="arrow-left"></i> Voltar ao Calendário
+                    </a>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{{ url_for('process_calendar_analysis', meeting_id=meeting.id) }}">
+                        <h4>{{ meeting.title }}</h4>
+                        
+                        {% if meeting.meeting_date %}
+                        <p class="text-muted mb-4">
+                            <i data-feather="clock" class="feather-sm me-1"></i> 
+                            Data da reunião: {{ meeting.meeting_date|datetime }}
+                        </p>
+                        {% endif %}
+                        
+                        <div class="mb-4">
+                            <h5>Pauta da Reunião</h5>
+                            <div class="border rounded p-3 bg-dark">
+                                {{ meeting.agenda|nl2br }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="transcription" class="form-label">Transcrição da Reunião *</label>
+                            <textarea name="transcription" id="transcription" class="form-control" 
+                                      rows="15" required
+                                      placeholder="Cole aqui a transcrição completa da reunião...">{{ meeting.transcription if meeting.transcription != "Para analisar esta reunião, insira a transcrição" }}</textarea>
+                            <div class="form-text">
+                                Cole a transcrição completa da reunião para análise de alinhamento com a pauta.
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i data-feather="activity"></i> Analisar Reunião
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

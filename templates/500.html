@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <div class="card shadow-sm">
+            <div class="card-body p-5">
+                <i data-feather="alert-triangle" style="width: 100px; height: 100px;" class="text-danger mb-4"></i>
+                <h1 class="display-4 mb-4">Erro no servidor</h1>
+                <p class="lead mb-4">Ocorreu um erro interno no servidor. Por favor, tente novamente mais tarde.</p>
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg px-4">
+                    <i data-feather="home"></i> Voltar para o início
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

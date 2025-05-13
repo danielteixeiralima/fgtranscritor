@@ -1,0 +1,84 @@
+{% extends 'layout.html' %}
+
+{% block title %}Gerar Pauta com IA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Gerar Pauta com Inteligência Artificial</h1>
+            <p class="lead">Informe o assunto e a descrição da reunião para que possamos criar uma pauta estruturada automaticamente.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Informações da Reunião</h5>
+                    <form action="{{ url_for('generate_agenda') }}" method="POST">
+                        <div class="mb-3">
+                            <label for="topic" class="form-label">Assunto da Reunião *</label>
+                            <input type="text" class="form-control" id="topic" name="topic" required
+                                placeholder="Ex: Planejamento Estratégico 2026">
+                            <div class="form-text">Informe o assunto principal da reunião.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descrição *</label>
+                            <textarea class="form-control" id="description" name="description" rows="5" required
+                                placeholder="Ex: Vamos discutir o planejamento estratégico para o próximo ano, incluindo metas de crescimento, novos projetos e prioridades de investimento."></textarea>
+                            <div class="form-text">Descreva o que deseja discutir na reunião com mais detalhes.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="language" class="form-label">Idioma</label>
+                            <select class="form-select" id="language" name="language">
+                                <option value="pt" selected>Português</option>
+                                <option value="en">Inglês</option>
+                                <option value="es">Espanhol</option>
+                            </select>
+                            <div class="form-text">Selecione o idioma desejado para a pauta.</div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-magic"></i> Gerar Pauta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Como funciona?</h5>
+                    <p>Nossa IA vai analisar o assunto e a descrição da sua reunião para criar:</p>
+                    <ul>
+                        <li>Um título atrativo e profissional</li>
+                        <li>Uma pauta estruturada com tópicos ordenados</li>
+                        <li>Sugestões de tempo para cada item da pauta</li>
+                        <li>Objetivos claros para a reunião</li>
+                    </ul>
+                    <p>Após a geração, você poderá editar ou ajustar qualquer detalhe antes de agendar no Google Calendar.</p>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Dicas para boas reuniões</h5>
+                    <ul>
+                        <li>Seja específico sobre o propósito da reunião</li>
+                        <li>Limite a pauta a 3-5 tópicos principais</li>
+                        <li>Defina claramente os resultados esperados</li>
+                        <li>Compartilhe a pauta com antecedência</li>
+                        <li>Reserve tempo para conclusão e próximos passos</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

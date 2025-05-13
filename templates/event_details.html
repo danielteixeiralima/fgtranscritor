@@ -1,0 +1,140 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="mb-0">
+                    <i data-feather="calendar"></i> Detalhes da Reunião
+                </h2>
+                <div>
+                    <a href="{{ url_for('view_calendar') }}" class="btn btn-outline-secondary">
+                        <i data-feather="arrow-left"></i> Voltar à Agenda
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark border-primary text-primary">
+                    <h3 class="card-title mb-0">
+                        {{ event.summary }}
+                    </h3>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-dark border-secondary h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i data-feather="clock" class="me-2 text-primary"></i> Quando
+                                    </h5>
+                                    <p class="card-text">
+                                        <strong>Início:</strong>
+                                        {% if event.start.get('dateTime') %}
+                                            {{ event.start.dateTime|datetime }}
+                                        {% else %}
+                                            {{ event.start.date }}
+                                        {% endif %}
+                                        <br>
+                                        <strong>Término:</strong>
+                                        {% if event.end.get('dateTime') %}
+                                            {{ event.end.dateTime|datetime }}
+                                        {% else %}
+                                            {{ event.end.date }}
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card bg-dark border-secondary h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <i data-feather="users" class="me-2 text-primary"></i> Participantes
+                                    </h5>
+                                    {% if event.attendees %}
+                                        <ul class="list-unstyled">
+                                            {% for attendee in event.attendees %}
+                                                <li>
+                                                    <span class="me-2">
+                                                        {% if attendee.responseStatus == 'accepted' %}
+                                                            <i data-feather="check" class="text-success" style="width: 16px; height: 16px;"></i>
+                                                        {% elif attendee.responseStatus == 'declined' %}
+                                                            <i data-feather="x" class="text-danger" style="width: 16px; height: 16px;"></i>
+                                                        {% elif attendee.responseStatus == 'tentative' %}
+                                                            <i data-feather="help-circle" class="text-warning" style="width: 16px; height: 16px;"></i>
+                                                        {% else %}
+                                                            <i data-feather="circle" class="text-secondary" style="width: 16px; height: 16px;"></i>
+                                                        {% endif %}
+                                                    </span>
+                                                    {{ attendee.email }}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <p class="card-text">Nenhum participante adicional.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if event.description %}
+                        <div class="card bg-dark border-secondary mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i data-feather="file-text" class="me-2 text-primary"></i> Descrição
+                                </h5>
+                                <p class="card-text">
+                                    {{ event.description|nl2br }}
+                                </p>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            {% if event.organizer %}
+                                <small class="text-muted">
+                                    Organizado por: {{ event.organizer.get('email') }}
+                                </small>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            {% if event.hangoutLink %}
+                                <a href="{{ event.hangoutLink }}" target="_blank" class="btn btn-primary me-2">
+                                    <i data-feather="video" class="me-2"></i> Participar da Reunião
+                                </a>
+                            {% endif %}
+                            
+                            {% if can_analyze %}
+                                <a href="{{ url_for('analyze_calendar_event', event_id=event.id) }}" class="btn btn-success">
+                                    <i data-feather="activity" class="me-2"></i> Analisar Reunião
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

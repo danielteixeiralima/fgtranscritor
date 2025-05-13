@@ -1,0 +1,119 @@
+{% extends 'layout.html' %}
+
+{% block title %}Editar Pauta e Agendar Reunião{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Editar Pauta e Agendar Reunião</h1>
+            <p class="lead">Revise a pauta gerada pela IA e agende sua reunião no Google Calendar.</p>
+        </div>
+    </div>
+
+    <form action="{{ url_for('edit_agenda') }}" method="POST">
+        <div class="row">
+            <div class="col-md-7 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Detalhes da Pauta</h5>
+                        
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Título da Reunião *</label>
+                            <input type="text" class="form-control" id="title" name="title" required
+                                value="{{ title }}">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Descrição Adicional</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"
+                            >{{ description }}</textarea>
+                            <div class="form-text">Informações adicionais que serão exibidas antes da pauta no convite.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="agenda" class="form-label">Pauta Gerada *</label>
+                            <textarea class="form-control" id="agenda" name="agenda" rows="12" required
+                            >{{ agenda }}</textarea>
+                            <div class="form-text">
+                                <i class="bi bi-info-circle me-1"></i> Personalize a pauta conforme necessário.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Agendamento</h5>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="start_date" class="form-label">Data Inicial *</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" required
+                                    value="{{ today_date }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="start_time" class="form-label">Hora Inicial *</label>
+                                <input type="time" class="form-control" id="start_time" name="start_time" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="end_date" class="form-label">Data Final *</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" required
+                                    value="{{ today_date }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end_time" class="form-label">Hora Final *</label>
+                                <input type="time" class="form-control" id="end_time" name="end_time" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="attendees" class="form-label">Participantes</label>
+                            <textarea class="form-control" id="attendees" name="attendees" rows="3"
+                                placeholder="email1@exemplo.com, email2@exemplo.com"></textarea>
+                            <div class="form-text">Lista de e-mails separados por vírgula.</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-calendar-plus"></i> Criar Evento no Google Calendar
+                            </button>
+                            <a href="{{ url_for('generate_agenda') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Voltar e criar nova pauta
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Script para definir horários padrão (próxima hora cheia para início e +1h para fim)
+    document.addEventListener('DOMContentLoaded', function() {
+        const now = new Date();
+        const nextHour = new Date(now);
+        nextHour.setHours(nextHour.getHours() + 1);
+        nextHour.setMinutes(0);
+        nextHour.setSeconds(0);
+        
+        const endTime = new Date(nextHour);
+        endTime.setHours(endTime.getHours() + 1);
+        
+        // Formato: HH:MM
+        document.getElementById('start_time').value = 
+            String(nextHour.getHours()).padStart(2, '0') + ':' + 
+            String(nextHour.getMinutes()).padStart(2, '0');
+            
+        document.getElementById('end_time').value = 
+            String(endTime.getHours()).padStart(2, '0') + ':' + 
+            String(endTime.getMinutes()).padStart(2, '0');
+    });
+</script>
+{% endblock %}

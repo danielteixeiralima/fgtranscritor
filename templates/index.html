@@ -1,0 +1,219 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header Section -->
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto text-center">
+            <h1 class="display-4 fw-bold text-primary mb-3">Transcritor Inteligente</h1>
+            <p class="lead fs-4 mb-4">Otimize suas reuniões com análise de transcrições e gestão de pautas potencializada por inteligência artificial</p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-4">
+                    <i data-feather="user-plus" class="me-2"></i> Criar conta
+                </a>
+                <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg px-4">
+                    <i data-feather="log-in" class="me-2"></i> Entrar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature highlights -->
+    <div class="row g-4 py-3 mb-5">
+        <div class="col-md-4">
+            <div class="card h-100 bg-dark border-primary">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon d-inline-flex align-items-center justify-content-center fs-2 mb-3">
+                        <i data-feather="check-square" class="text-primary"></i>
+                    </div>
+                    <h3 class="card-title">Validação de Pautas</h3>
+                    <p class="card-text">Compare transcrições com pautas para medir a eficácia das reuniões, identificar tópicos abordados e omitidos.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 bg-dark border-success">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon d-inline-flex align-items-center justify-content-center fs-2 mb-3">
+                        <i data-feather="calendar" class="text-success"></i>
+                    </div>
+                    <h3 class="card-title">Google Calendar</h3>
+                    <p class="card-text">Integração completa com Google Calendar para gerenciar reuniões, criar eventos e analisar reuniões diretamente do seu calendário.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 bg-dark border-info">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon d-inline-flex align-items-center justify-content-center fs-2 mb-3">
+                        <i data-feather="edit-3" class="text-info"></i>
+                    </div>
+                    <h3 class="card-title">Geração de Pautas</h3>
+                    <p class="card-text">Crie pautas automaticamente com IA a partir de tópicos e descrições, otimizando o planejamento das suas reuniões.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo Banner -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card bg-dark border-warning text-white">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h2 class="card-title"><i data-feather="star" class="text-warning me-2"></i>Demonstração Web Summit 2025</h2>
+                            <p class="card-text lead">Experimente nossa análise de reuniões com gravação de áudio em tempo real. Transcrição e análise automática da sua fala.</p>
+                        </div>
+                        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                            <a href="{{ url_for('live_demo') }}" class="btn btn-warning btn-lg">
+                                <i data-feather="play-circle" class="me-2"></i>Iniciar Demonstração
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sections with screenshots -->
+    <div class="row align-items-center mb-5">
+        <div class="col-md-6">
+            <h2 class="fw-bold mb-3">Análise Inteligente</h2>
+            <p class="lead mb-4">Nossa tecnologia analisa as transcrições das suas reuniões e compara com a pauta original para:</p>
+            <ul class="list-group list-group-flush bg-transparent mb-4">
+                <li class="list-group-item bg-transparent"><i data-feather="check" class="text-success me-2"></i>Verificar quais tópicos foram cobertos</li>
+                <li class="list-group-item bg-transparent"><i data-feather="alert-circle" class="text-warning me-2"></i>Identificar tópicos não abordados</li>
+                <li class="list-group-item bg-transparent"><i data-feather="plus" class="text-info me-2"></i>Detectar temas adicionais discutidos</li>
+                <li class="list-group-item bg-transparent"><i data-feather="trending-up" class="text-primary me-2"></i>Sugerir próximos passos e ações</li>
+                <li class="list-group-item bg-transparent"><i data-feather="bar-chart-2" class="text-success me-2"></i>Medir a eficácia e aderência à pauta</li>
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-body p-0">
+                    <img src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Dashboard Analysis" class="img-fluid rounded">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row align-items-center mb-5 flex-md-row-reverse">
+        <div class="col-md-6">
+            <h2 class="fw-bold mb-3">Integração com Google Calendar</h2>
+            <p class="lead mb-4">Gerencie suas reuniões diretamente do seu calendário Google:</p>
+            <ul class="list-group list-group-flush bg-transparent mb-4">
+                <li class="list-group-item bg-transparent"><i data-feather="link" class="text-primary me-2"></i>Conecte sua conta Google em poucos cliques</li>
+                <li class="list-group-item bg-transparent"><i data-feather="eye" class="text-info me-2"></i>Visualize suas próximas reuniões</li>
+                <li class="list-group-item bg-transparent"><i data-feather="plus-circle" class="text-success me-2"></i>Crie novos eventos com pautas geradas por IA</li>
+                <li class="list-group-item bg-transparent"><i data-feather="search" class="text-warning me-2"></i>Analise reuniões diretamente dos eventos do calendário</li>
+                <li class="list-group-item bg-transparent"><i data-feather="clock" class="text-secondary me-2"></i>Controle automático de fuso horário</li>
+            </ul>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-body p-0">
+                    <img src="https://images.unsplash.com/photo-1557804506-669a67965ba0?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" alt="Calendar Integration" class="img-fluid rounded">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick test section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card bg-dark border-success shadow">
+                <div class="card-header bg-dark border-bottom border-success py-3">
+                    <h2 class="card-title mb-0">
+                        <i data-feather="zap" class="text-success me-2"></i>Teste Rápido (sem registro)
+                    </h2>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('guest_analyze') }}" method="post">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="agenda" class="form-label fw-bold">Pauta da reunião</label>
+                                <textarea id="agenda" name="agenda" class="form-control" rows="6" required
+                                    placeholder="Digite aqui os tópicos e objetivos da sua reunião..."></textarea>
+                                <div class="form-text">Insira cada tópico em uma linha separada</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="transcription" class="form-label fw-bold">Transcrição da reunião</label>
+                                <textarea id="transcription" name="transcription" class="form-control" rows="6" required
+                                    placeholder="Cole aqui a transcrição completa da sua reunião..."></textarea>
+                                <div class="form-text">Cole a transcrição da sua reunião obtida de qualquer ferramenta como Tactiq, Otter.ai, etc.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mt-3">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i data-feather="search" class="me-2"></i>Analisar Reunião Agora
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional features and benefits -->
+    <div class="row mb-5">
+        <div class="col-12 text-center mb-4">
+            <h2 class="fw-bold">Recursos Adicionais</h2>
+            <p class="lead">Funcionalidades exclusivas para usuários registrados</p>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 bg-dark">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i data-feather="mic" class="text-primary" style="width: 48px; height: 48px;"></i>
+                    </div>
+                    <h3 class="card-title text-center">Gravação de Áudio</h3>
+                    <p class="card-text">Grave reuniões diretamente no navegador e obtenha transcrições automáticas para análise imediata.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 bg-dark">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i data-feather="globe" class="text-primary" style="width: 48px; height: 48px;"></i>
+                    </div>
+                    <h3 class="card-title text-center">Multilíngue</h3>
+                    <p class="card-text">Suporte para múltiplos idiomas com detecção automática e análise adaptada à língua da reunião.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 bg-dark">
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i data-feather="pie-chart" class="text-primary" style="width: 48px; height: 48px;"></i>
+                    </div>
+                    <h3 class="card-title text-center">Estatísticas & Insights</h3>
+                    <p class="card-text">Dashboard com estatísticas detalhadas e tendências sobre a eficácia das suas reuniões ao longo do tempo.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto text-center">
+            <h2 class="fw-bold mb-4">Pronto para otimizar suas reuniões?</h2>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg px-5 py-3">
+                    <i data-feather="user-plus" class="me-2"></i>Criar Conta Gratuita
+                </a>
+                <a href="{{ url_for('live_demo') }}" class="btn btn-outline-warning btn-lg px-5 py-3">
+                    <i data-feather="play" class="me-2"></i>Testar Demo
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

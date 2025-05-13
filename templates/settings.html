@@ -1,0 +1,116 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark">
+                    <h2 class="mb-0 h4">
+                        <i data-feather="settings"></i> Configurações da Conta
+                    </h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-secondary">
+                        <i data-feather="user" class="me-2"></i>
+                        Bem-vindo, <strong>{{ current_user.username }}</strong>! 
+                        Aqui você pode gerenciar suas integrações e preferências.
+                    </div>
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} mt-3">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <h3 class="h5 mt-4 mb-3">Informações da Conta</h3>
+                    <div class="list-group mb-4">
+                        <div class="list-group-item bg-dark">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span>
+                                    <i data-feather="mail" class="me-2 text-primary"></i> 
+                                    Email
+                                </span>
+                                <span>{{ current_user.email }}</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item bg-dark">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span>
+                                    <i data-feather="clock" class="me-2 text-primary"></i> 
+                                    Membro desde
+                                </span>
+                                <span>{{ current_user.created_at.strftime('%d/%m/%Y') }}</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item bg-dark">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <span>
+                                    <i data-feather="bar-chart-2" class="me-2 text-primary"></i> 
+                                    Total de reuniões
+                                </span>
+                                <span>{{ current_user.meetings.count() }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="h5 mt-4 mb-3">Integrações</h3>
+                    <div class="card mb-4 border-primary">
+                        <div class="card-header bg-dark border-primary text-primary">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <h5 class="mb-0">
+                                    <i data-feather="calendar" class="me-2"></i> Google Calendar
+                                </h5>
+                                <span class="badge {% if current_user.google_calendar_enabled %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if current_user.google_calendar_enabled %}
+                                        Conectado
+                                    {% else %}
+                                        Desconectado
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p>
+                                {% if current_user.google_calendar_enabled %}
+                                    Sua conta está integrada com o Google Calendar. Você pode visualizar e gerenciar eventos do calendário diretamente do aplicativo.
+                                {% else %}
+                                    Conecte sua conta do Google Calendar para agendar reuniões facilmente e sincronizar seus eventos.
+                                {% endif %}
+                            </p>
+                            <div class="d-grid gap-2">
+                                {% if current_user.google_calendar_enabled %}
+                                    <a href="{{ url_for('settings_google_calendar_disconnect') }}" class="btn btn-outline-danger">
+                                        <i data-feather="log-out" class="me-2"></i> Desconectar Google Calendar
+                                    </a>
+                                    <a href="{{ url_for('view_calendar') }}" class="btn btn-primary">
+                                        <i data-feather="calendar" class="me-2"></i> Ver Meus Eventos
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('settings_google_calendar_connect') }}" class="btn btn-primary">
+                                        <i data-feather="log-in" class="me-2"></i> Conectar Google Calendar
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex align-items-center justify-content-between mt-4">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                            <i data-feather="arrow-left" class="me-2"></i> Voltar ao Dashboard
+                        </a>
+                        
+                        <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">
+                            <i data-feather="log-out" class="me-2"></i> Sair
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

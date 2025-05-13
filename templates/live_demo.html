@@ -1,0 +1,664 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white">
+        <h2 class="mb-0">
+            <i data-feather="play-circle"></i> Demonstração Web Summit
+        </h2>
+    </div>
+    <div class="card-body">
+        <p class="lead">Esta é uma demonstração especial para apresentações ao vivo, permitindo simular uma análise de reunião em tempo real.</p>
+        
+        <div class="alert alert-info">
+            <i data-feather="info"></i> Esta demonstração simula a gravação de áudio e transcrição para facilitar apresentações ao vivo, como no Web Summit.
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white">
+                <h3 class="mb-0">
+                    <i data-feather="list"></i> Pauta da Reunião
+                </h3>
+            </div>
+            <div class="card-body">
+                <div id="agenda-type-selector" class="mb-3">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="agendaType" id="agendaStandard" value="standard" checked>
+                        <label class="form-check-label" for="agendaStandard">Web Summit (Apresentação)</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="agendaType" id="agendaAlternative" value="alternative">
+                        <label class="form-check-label" for="agendaAlternative">Receita de Bolo (Alternativa)</label>
+                    </div>
+                </div>
+                
+                <div class="agenda-content mb-3">
+                    <div class="d-flex justify-content-end mb-2">
+                        <button id="edit-agenda-btn" class="btn btn-sm btn-outline-primary">
+                            <i data-feather="edit-2"></i> Editar Pauta
+                        </button>
+                        <button id="save-agenda-btn" class="btn btn-sm btn-success ms-2 d-none">
+                            <i data-feather="save"></i> Salvar
+                        </button>
+                        <button id="cancel-edit-btn" class="btn btn-sm btn-outline-secondary ms-2 d-none">
+                            <i data-feather="x"></i> Cancelar
+                        </button>
+                    </div>
+                    
+                    <pre class="bg-dark text-light p-3 rounded" id="agenda-preview" style="white-space: pre-wrap; max-height: 400px; overflow-y: auto;">{{ web_summit_agenda }}</pre>
+                    
+                    <textarea id="agenda-editor" class="form-control d-none" style="height: 400px; font-family: monospace;">{{ web_summit_agenda }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-dark text-white">
+                <h3 class="mb-0">
+                    <i data-feather="mic"></i> Gravação de Áudio
+                </h3>
+            </div>
+            <div class="card-body d-flex flex-column">
+                <p>Simule uma gravação de reunião para análise em tempo real:</p>
+                
+                <div class="recording-section d-flex flex-column align-items-center justify-content-center flex-grow-1">
+                    <div class="recording-timer text-center mb-3">
+                        <div id="timer-display" class="display-4 fw-bold mb-2">00:00</div>
+                        <div id="recording-status" class="d-none text-danger">
+                            <div class="d-flex align-items-center justify-content-center">
+                                <div class="me-2">
+                                    <span class="recording-indicator"></span>
+                                </div>
+                                <div>Gravando seu áudio... Clique em "Parar Gravação" quando terminar</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="audio-visualizer mb-3 d-none" id="audio-visualizer">
+                        <canvas id="visualizer" width="300" height="60"></canvas>
+                    </div>
+                    
+                    <div id="recording-instructions" class="text-center mb-3">
+                        <p class="mb-1">Clique em "Iniciar Gravação" e permita o acesso ao microfone.</p>
+                        <p class="mb-1">Fale claramente sobre os tópicos da pauta selecionada.</p>
+                        <p>A gravação continuará até que você clique em "Parar Gravação".</p>
+                    </div>
+                    
+                    <div class="recording-controls">
+                        <button id="start-recording" class="btn btn-danger btn-lg px-4 py-3">
+                            <i data-feather="mic"></i> Iniciar Gravação
+                        </button>
+                        <button id="stop-recording" class="btn btn-warning btn-lg d-none px-4 py-3">
+                            <i data-feather="square"></i> Parar Gravação
+                        </button>
+                    </div>
+                </div>
+                
+                <style>
+                    .recording-indicator {
+                        display: inline-block;
+                        width: 12px;
+                        height: 12px;
+                        background: red;
+                        border-radius: 50%;
+                        animation: pulse 1s infinite;
+                    }
+                    
+                    @keyframes pulse {
+                        0% {
+                            opacity: 1;
+                            transform: scale(1);
+                        }
+                        50% {
+                            opacity: 0.5;
+                            transform: scale(1.2);
+                        }
+                        100% {
+                            opacity: 1;
+                            transform: scale(1);
+                        }
+                    }
+                </style>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resultados da Análise (inicialmente oculto) -->
+<div id="analysis-results" class="d-none">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+            <h3 class="mb-0">
+                <i data-feather="check-circle"></i> Análise Concluída
+            </h3>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-header bg-dark text-white">
+                            <h4 class="mb-0">Resumo da Análise</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>Pontuação de Alinhamento:</h5>
+                                <span id="alignment-score" class="badge bg-success fs-5">0.0</span>
+                            </div>
+                            
+                            <div class="progress mb-3" style="height: 25px;">
+                                <div id="alignment-progress" class="progress-bar bg-success" role="progressbar" 
+                                    style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                    0%
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>Tópicos Abordados:</h5>
+                                <span id="addressed-topics" class="badge bg-primary fs-5">0/0</span>
+                            </div>
+                            
+                            <div class="progress mb-4" style="height: 25px;">
+                                <div id="topics-progress" class="progress-bar bg-primary" role="progressbar" 
+                                    style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                    0%
+                                </div>
+                            </div>
+                            
+                            <a id="view-details-btn" href="#" class="btn btn-outline-primary w-100">
+                                <i data-feather="external-link"></i> Ver Análise Detalhada
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white">
+                            <h4 class="mb-0">Estatísticas da Reunião</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center">
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="text-muted">Duração da Reunião</h6>
+                                    <div id="meeting-duration" class="display-6 fw-bold">00:00</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <h6 class="text-muted">Custo Estimado</h6>
+                                    <div id="meeting-cost" class="display-6 fw-bold">R$ 0,00</div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-info mt-3">
+                                <i data-feather="info"></i> O custo é calculado com base no tempo de duração e no número de participantes.
+                            </div>
+                            
+                            <div class="text-center mt-3">
+                                <button id="new-demo-btn" class="btn btn-outline-secondary">
+                                    <i data-feather="refresh-cw"></i> Nova Demonstração
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Agendas padrão para comparação
+    let WEB_SUMMIT_AGENDA = "";
+    let CAKE_RECIPE_AGENDA = "";
+    
+    // Versões personalizadas das agendas
+    let customWebSummitAgenda = null;
+    let customCakeRecipeAgenda = null;
+    
+    // Carregar as agendas padrão
+    fetch('/get_web_summit_agenda')
+        .then(response => response.json())
+        .then(data => {
+            WEB_SUMMIT_AGENDA = data.agenda;
+        })
+        .catch(error => console.error('Erro ao carregar agenda Web Summit:', error));
+    
+    fetch('/get_cake_recipe_agenda')
+        .then(response => response.json())
+        .then(data => {
+            CAKE_RECIPE_AGENDA = data.agenda;
+        })
+        .catch(error => console.error('Erro ao carregar agenda Receita de Bolo:', error));
+    
+    // Elementos do DOM
+    const agendaStandard = document.getElementById('agendaStandard');
+    const agendaAlternative = document.getElementById('agendaAlternative');
+    const agendaPreview = document.getElementById('agenda-preview');
+    const agendaEditor = document.getElementById('agenda-editor');
+    const editAgendaBtn = document.getElementById('edit-agenda-btn');
+    const saveAgendaBtn = document.getElementById('save-agenda-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    const startRecordingBtn = document.getElementById('start-recording');
+    const stopRecordingBtn = document.getElementById('stop-recording');
+    const timerDisplay = document.getElementById('timer-display');
+    const recordingStatus = document.getElementById('recording-status');
+    const analysisResults = document.getElementById('analysis-results');
+    const alignmentScore = document.getElementById('alignment-score');
+    const alignmentProgress = document.getElementById('alignment-progress');
+    const addressedTopics = document.getElementById('addressed-topics');
+    const topicsProgress = document.getElementById('topics-progress');
+    const meetingDuration = document.getElementById('meeting-duration');
+    const meetingCost = document.getElementById('meeting-cost');
+    const viewDetailsBtn = document.getElementById('view-details-btn');
+    const newDemoBtn = document.getElementById('new-demo-btn');
+    
+    // Variáveis de estado
+    let timerInterval;
+    let recordingTime = 0;
+    let demoType = 'standard';
+    let meetingId = null;
+    
+    // Variáveis para gravação de áudio
+    let mediaRecorder;
+    let audioChunks = [];
+    let audioBlob;
+    let audioStream;
+    
+    // Alternar entre os tipos de pauta
+    agendaStandard.addEventListener('change', function() {
+        if (this.checked) {
+            demoType = 'standard';
+            
+            // Usar a versão personalizada da agenda Web Summit, se existir
+            if (customWebSummitAgenda) {
+                agendaPreview.textContent = customWebSummitAgenda;
+                agendaEditor.value = customWebSummitAgenda;
+                console.log("Usando versão personalizada da agenda Web Summit");
+            } else {
+                // Caso contrário, obter a versão original do servidor
+                fetch('/get_web_summit_agenda')
+                    .then(response => response.json())
+                    .then(data => {
+                        agendaPreview.textContent = data.agenda;
+                        agendaEditor.value = data.agenda;
+                    })
+                    .catch(error => console.error('Erro ao carregar agenda:', error));
+            }
+        }
+    });
+    
+    agendaAlternative.addEventListener('change', function() {
+        if (this.checked) {
+            demoType = 'alternative';
+            
+            // Usar a versão personalizada da agenda Receita de Bolo, se existir
+            if (customCakeRecipeAgenda) {
+                agendaPreview.textContent = customCakeRecipeAgenda;
+                agendaEditor.value = customCakeRecipeAgenda;
+                console.log("Usando versão personalizada da agenda Receita de Bolo");
+            } else {
+                // Caso contrário, obter a versão original do servidor
+                fetch('/get_cake_recipe_agenda')
+                    .then(response => response.json())
+                    .then(data => {
+                        agendaPreview.textContent = data.agenda;
+                        agendaEditor.value = data.agenda;
+                    })
+                    .catch(error => console.error('Erro ao carregar agenda:', error));
+            }
+        }
+    });
+    
+    // Controles de edição de pauta
+    editAgendaBtn.addEventListener('click', function() {
+        // Copiar o conteúdo da pauta para o editor
+        agendaEditor.value = agendaPreview.textContent;
+        
+        // Mostrar editor e botões de edição
+        agendaPreview.classList.add('d-none');
+        agendaEditor.classList.remove('d-none');
+        editAgendaBtn.classList.add('d-none');
+        saveAgendaBtn.classList.remove('d-none');
+        cancelEditBtn.classList.remove('d-none');
+        
+        // Desabilitar mudança de tipo de pauta durante edição
+        agendaStandard.disabled = true;
+        agendaAlternative.disabled = true;
+    });
+    
+    saveAgendaBtn.addEventListener('click', function() {
+        // Copiar o conteúdo editado para a visualização
+        const editedContent = agendaEditor.value;
+        agendaPreview.textContent = editedContent;
+        
+        // Verificar se o conteúdo editado corresponde a uma das agendas padrão
+        if (editedContent === WEB_SUMMIT_AGENDA) {
+            demoType = 'standard';
+            agendaStandard.checked = true;
+            agendaAlternative.checked = false;
+            customWebSummitAgenda = null; // Não é uma versão personalizada
+        } else if (editedContent === CAKE_RECIPE_AGENDA) {
+            demoType = 'alternative';
+            agendaStandard.checked = false;
+            agendaAlternative.checked = true;
+            customCakeRecipeAgenda = null; // Não é uma versão personalizada
+        } else if (agendaStandard.checked) {
+            // Versão personalizada da agenda Web Summit
+            demoType = 'standard';
+            customWebSummitAgenda = editedContent;
+            console.log("Salvando versão personalizada da agenda Web Summit");
+        } else if (agendaAlternative.checked) {
+            // Versão personalizada da agenda Receita de Bolo
+            demoType = 'alternative';
+            customCakeRecipeAgenda = editedContent;
+            console.log("Salvando versão personalizada da agenda Receita de Bolo");
+        } else {
+            // Agenda completamente personalizada
+            demoType = 'custom';
+            agendaStandard.checked = false;
+            agendaAlternative.checked = false;
+        }
+        
+        // Voltar para o modo de visualização
+        agendaPreview.classList.remove('d-none');
+        agendaEditor.classList.add('d-none');
+        editAgendaBtn.classList.remove('d-none');
+        saveAgendaBtn.classList.add('d-none');
+        cancelEditBtn.classList.add('d-none');
+        
+        // Reativar mudança de tipo de pauta
+        agendaStandard.disabled = false;
+        agendaAlternative.disabled = false;
+        
+        console.log("Agenda salva como", demoType + ":", editedContent.substring(0, 50) + "...");
+    });
+    
+    cancelEditBtn.addEventListener('click', function() {
+        // Descartar alterações
+        agendaEditor.value = agendaPreview.textContent;
+        
+        // Voltar para o modo de visualização
+        agendaPreview.classList.remove('d-none');
+        agendaEditor.classList.add('d-none');
+        editAgendaBtn.classList.remove('d-none');
+        saveAgendaBtn.classList.add('d-none');
+        cancelEditBtn.classList.add('d-none');
+        
+        // Reativar mudança de tipo de pauta
+        agendaStandard.disabled = false;
+        agendaAlternative.disabled = false;
+    });
+    
+    // Iniciar gravação
+    startRecordingBtn.addEventListener('click', async function() {
+        try {
+            // Solicitar acesso ao microfone
+            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            // Configurar o Media Recorder com qualidade adequada para transcrição
+            const options = { 
+                mimeType: 'audio/webm;codecs=opus',
+                audioBitsPerSecond: 128000 // 128 kbps para melhor qualidade
+            };
+            
+            try {
+                mediaRecorder = new MediaRecorder(audioStream, options);
+            } catch (e) {
+                // Fallback para opções padrão se o formato especificado não for suportado
+                console.warn("Formato de áudio preferido não suportado, usando padrão:", e);
+                mediaRecorder = new MediaRecorder(audioStream);
+            }
+            
+            audioChunks = [];
+            
+            // Configurar o evento para coletar os dados a cada 1 segundo
+            mediaRecorder.addEventListener('dataavailable', event => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                    console.log(`Chunk de áudio recebido: ${event.data.size} bytes`);
+                }
+            });
+            
+            // Iniciar gravação com coleta de chunks a cada 1 segundo para melhor transcrição
+            mediaRecorder.start(1000);
+            
+            // Iniciar o temporizador
+            recordingTime = 0;
+            updateTimerDisplay();
+            timerInterval = setInterval(function() {
+                recordingTime++;
+                updateTimerDisplay();
+                
+                // Sem limite de tempo - gravação contínua até o usuário parar
+            }, 1000);
+            
+            // Atualizar UI
+            startRecordingBtn.classList.add('d-none');
+            stopRecordingBtn.classList.remove('d-none');
+            recordingStatus.classList.remove('d-none');
+            
+            // Mostrar o visualizador de áudio
+            document.getElementById('audio-visualizer').classList.remove('d-none');
+            document.getElementById('recording-instructions').classList.add('d-none');
+            
+            // Configurar visualizador de áudio
+            setupAudioVisualizer(audioStream);
+            
+        } catch (error) {
+            console.error('Erro ao acessar o microfone:', error);
+            alert('Não foi possível acessar o microfone. Verifique se você concedeu permissão para o navegador.');
+        }
+    });
+    
+    // Função para parar a gravação
+    function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            // Remover o listener anterior para evitar duplicação
+            mediaRecorder.removeEventListener('stop', processAudio);
+            
+            // Adicionar o listener para processar o áudio quando estiver disponível
+            mediaRecorder.addEventListener('stop', processAudio);
+            
+            // Parar a gravação
+            mediaRecorder.stop();
+            
+            // Parar a stream do microfone
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Parar o temporizador
+            clearInterval(timerInterval);
+            
+            // Atualizar UI
+            stopRecordingBtn.classList.add('d-none');
+            startRecordingBtn.classList.remove('d-none');
+            recordingStatus.classList.add('d-none');
+            
+            // Esconder o visualizador de áudio
+            document.getElementById('audio-visualizer').classList.add('d-none');
+        }
+    }
+    
+    // Parar gravação via botão
+    stopRecordingBtn.addEventListener('click', stopRecording);
+    
+    // Processar o áudio gravado
+    function processAudio() {
+        // Mostrar indicador de carregamento
+        startRecordingBtn.disabled = true;
+        startRecordingBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Processando...';
+        
+        // Criar blob de áudio
+        audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        
+        // Criar FormData com o áudio e a pauta customizada
+        const formData = new FormData();
+        formData.append('demo_type', demoType);
+        formData.append('duration_seconds', recordingTime);
+        
+        // Verificar se o audioBlob contém dados válidos
+        console.log("Tamanho do áudio gravado:", audioBlob.size, "bytes");
+        if (audioBlob.size > 0) {
+            formData.append('audio_file', audioBlob, 'recording.webm');
+        } else {
+            console.error("ERRO: O blob de áudio está vazio!");
+            alert("Ocorreu um erro: o áudio gravado está vazio. Por favor, tente novamente.");
+            startRecordingBtn.disabled = false;
+            startRecordingBtn.innerHTML = '<i data-feather="mic"></i> Iniciar Gravação';
+            feather.replace();
+            return; // Interrompe o processamento se não há áudio
+        }
+        
+        formData.append('custom_agenda', agendaPreview.textContent);
+        
+        // Enviar o áudio para o servidor para transcrição e análise
+        console.log("Enviando áudio para processamento...");
+        fetch('/process_demo_recording', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Armazenar o ID da reunião
+            meetingId = data.meeting_id;
+            
+            // Atualizar UI com os resultados
+            analysisResults.classList.remove('d-none');
+            
+            // Pontuação de alinhamento
+            const scoreValue = parseFloat(data.alignment_score).toFixed(1);
+            alignmentScore.textContent = scoreValue;
+            const scorePercent = (data.alignment_score * 10).toFixed(0);
+            alignmentProgress.style.width = `${scorePercent}%`;
+            alignmentProgress.textContent = `${scorePercent}%`;
+            alignmentProgress.setAttribute('aria-valuenow', scorePercent);
+            
+            // Ajustar cor com base na pontuação
+            if (data.alignment_score >= 7) {
+                alignmentScore.classList.remove('bg-danger', 'bg-warning');
+                alignmentScore.classList.add('bg-success');
+                alignmentProgress.classList.remove('bg-danger', 'bg-warning');
+                alignmentProgress.classList.add('bg-success');
+            } else if (data.alignment_score >= 4) {
+                alignmentScore.classList.remove('bg-danger', 'bg-success');
+                alignmentScore.classList.add('bg-warning');
+                alignmentProgress.classList.remove('bg-danger', 'bg-success');
+                alignmentProgress.classList.add('bg-warning');
+            } else {
+                alignmentScore.classList.remove('bg-success', 'bg-warning');
+                alignmentScore.classList.add('bg-danger');
+                alignmentProgress.classList.remove('bg-success', 'bg-warning');
+                alignmentProgress.classList.add('bg-danger');
+            }
+            
+            // Tópicos abordados
+            addressedTopics.textContent = `${data.addressed_items}/${data.total_items}`;
+            const topicsPercent = Math.round((data.addressed_items / data.total_items) * 100);
+            topicsProgress.style.width = `${topicsPercent}%`;
+            topicsProgress.textContent = `${topicsPercent}%`;
+            topicsProgress.setAttribute('aria-valuenow', topicsPercent);
+            
+            // Duração e custo
+            const minutes = Math.floor(data.duration_seconds / 60);
+            const seconds = data.duration_seconds % 60;
+            meetingDuration.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            meetingCost.textContent = `R$ ${data.estimated_cost.toFixed(2)}`;
+            
+            // Link para detalhes
+            if (data.meeting_id) {
+                // Se logado, direciona para a página de detalhes da reunião
+                viewDetailsBtn.href = `/meetings/${data.meeting_id}`;
+            } else {
+                // Se não estiver logado, direciona para a página de demonstração
+                viewDetailsBtn.href = `/demo-results`;
+            }
+            
+            // Restaurar botão de gravação
+            startRecordingBtn.disabled = false;
+            startRecordingBtn.innerHTML = '<i data-feather="mic"></i> Iniciar Gravação';
+            feather.replace(); // Reinicializar ícones
+            
+            // Scroll para resultados
+            analysisResults.scrollIntoView({ behavior: 'smooth' });
+        })
+        .catch(error => {
+            console.error('Erro no processamento:', error);
+            alert('Ocorreu um erro ao processar a demonstração. Por favor, tente novamente.');
+            
+            // Restaurar botão de gravação
+            startRecordingBtn.disabled = false;
+            startRecordingBtn.innerHTML = '<i data-feather="mic"></i> Iniciar Gravação';
+            feather.replace(); // Reinicializar ícones
+        });
+    }
+    
+    // Botão para nova demonstração
+    newDemoBtn.addEventListener('click', function() {
+        analysisResults.classList.add('d-none');
+        recordingTime = 0;
+        updateTimerDisplay();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    
+    // Função para atualizar o display do temporizador
+    function updateTimerDisplay() {
+        const minutes = Math.floor(recordingTime / 60);
+        const seconds = recordingTime % 60;
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    // Função para configurar o visualizador de áudio
+    function setupAudioVisualizer(stream) {
+        // Resetar o visualizador
+        document.getElementById('audio-visualizer').classList.remove('d-none');
+        
+        const canvas = document.getElementById('visualizer');
+        const canvasCtx = canvas.getContext('2d');
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaStreamSource(stream);
+        
+        source.connect(analyser);
+        analyser.fftSize = 256;
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        function draw() {
+            requestAnimationFrame(draw);
+            
+            analyser.getByteFrequencyData(dataArray);
+            
+            canvasCtx.fillStyle = 'rgb(0, 0, 0)';
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let barHeight;
+            let x = 0;
+            
+            for(let i = 0; i < bufferLength; i++) {
+                barHeight = dataArray[i] / 2;
+                
+                canvasCtx.fillStyle = `rgb(${dataArray[i]}, 100, 150)`;
+                canvasCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                
+                x += barWidth + 1;
+            }
+        }
+        
+        draw();
+    }
+    
+    // Inicializar Feather Icons
+    feather.replace();
+});
+</script>
+{% endblock %}

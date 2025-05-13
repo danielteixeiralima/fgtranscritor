@@ -1,0 +1,49 @@
+/* Estilos personalizados */
+
+/* Altura mínima do conteúdo principal para evitar footer flutuante */
+main.container {
+    min-height: calc(100vh - 200px);
+}
+
+/* Melhorias para dispositivos móveis */
+@media (max-width: 576px) {
+    .display-4 {
+        font-size: 2.5rem;
+    }
+    
+    .display-5 {
+        font-size: 2rem;
+    }
+}
+
+/* Melhorias visuais */
+.card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Feedback visual para botões */
+.btn {
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Melhorias para áreas de texto */
+textarea.form-control {
+    transition: min-height 0.3s;
+}
+
+textarea.form-control:focus {
+    min-height: 150px;
+}
+
+/* Ícones */
+[data-feather] {
+    vertical-align: middle;
+}

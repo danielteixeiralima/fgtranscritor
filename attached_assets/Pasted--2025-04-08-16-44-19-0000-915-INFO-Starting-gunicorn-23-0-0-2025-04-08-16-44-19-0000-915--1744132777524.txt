@@ -1,0 +1,144 @@
+[2025-04-08 16:44:19 +0000] [915] [INFO] Starting gunicorn 23.0.0
+[2025-04-08 16:44:19 +0000] [915] [INFO] Listening at: http://0.0.0.0:5000 (915)
+[2025-04-08 16:44:19 +0000] [915] [INFO] Using worker: sync
+[2025-04-08 16:44:19 +0000] [926] [INFO] Booting worker with pid: 926
+[2025-04-08 16:44:19 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 16:44:19 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 16:44:19 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 16:44:20 +0000] [915] [INFO] Handling signal: winch
+DEBUG:app:Database tables created or confirmed
+[2025-04-08 16:44:21 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 16:44:21 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 16:54:59 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 16:54:59 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 16:55:00 +0000] [915] [INFO] Handling signal: winch
+DEBUG:app:Arquivo de áudio recebido: <FileStorage: 'recording.webm' ('audio/webm')>, nome: recording.webm, tipo: audio/webm
+DEBUG:app:Tamanho do arquivo de áudio: 0
+DEBUG:app:Campos do formulário: ['demo_type', 'duration_seconds', 'custom_agenda']
+DEBUG:app:Campos de arquivo: ['audio_file']
+DEBUG:app:Iniciando transcrição do áudio
+DEBUG:openai_service:Starting audio transcription
+DEBUG:openai_service:Tipo de arquivo recebido: <class 'werkzeug.datastructures.file_storage.FileStorage'>
+DEBUG:openai_service:Tamanho dos dados de áudio lidos: 17318866 bytes
+DEBUG:openai_service:Arquivo temporário criado: /tmp/tmp1q6smbio.webm
+DEBUG:openai_service:Enviando arquivo para transcrição com a API OpenAI Whisper
+DEBUG:openai._base_client:Request options: {'method': 'post', 'url': '/audio/transcriptions', 'headers': {'Content-Type': 'multipart/form-data'}, 'files': [('file', SerializationIterator(index=0, iterator=SerializationIterator(index=0, iterator=<_io.BufferedReader name='/tmp/tmp1q6smbio.webm'>)))], 'json_data': {'model': 'whisper-1'}}
+DEBUG:openai._base_client:Sending HTTP Request: POST https://api.openai.com/v1/audio/transcriptions
+DEBUG:httpcore.connection:connect_tcp.started host='api.openai.com' port=443 local_address=None timeout=5.0 socket_options=None
+DEBUG:httpcore.connection:connect_tcp.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f33a612b9d0>
+DEBUG:httpcore.connection:start_tls.started ssl_context=<ssl.SSLContext object at 0x7f33a79ee180> server_hostname='api.openai.com' timeout=5.0
+DEBUG:httpcore.connection:start_tls.complete return_value=<httpcore._backends.sync.SyncStream object at 0x7f33a610ae10>
+DEBUG:httpcore.http11:send_request_headers.started request=<Request [b'POST']>
+DEBUG:httpcore.http11:send_request_headers.complete
+DEBUG:httpcore.http11:send_request_body.started request=<Request [b'POST']>
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+[2025-04-08 17:18:31 +0000] [915] [INFO] Handling signal: winch
+DEBUG:httpcore.http11:send_request_body.complete
+DEBUG:httpcore.http11:receive_response_headers.started request=<Request [b'POST']>
+[2025-04-08 17:18:55 +0000] [915] [CRITICAL] WORKER TIMEOUT (pid:926)
+DEBUG:httpcore.http11:receive_response_headers.failed exception=SystemExit(1)
+DEBUG:httpcore.http11:response_closed.started
+DEBUG:httpcore.http11:response_closed.complete
+DEBUG:openai_service:Arquivo temporário removido: /tmp/tmp1q6smbio.webm
+[2025-04-08 17:18:55 +0000] [926] [ERROR] Error handling request /process_demo_recording
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 134, in handle
+    self.handle_request(listener, req, client, addr)
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/workers/sync.py", line 177, in handle_request
+    respiter = self.wsgi(environ, resp.start_response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/app.py", line 539, in process_demo_recording
+    transcription = transcribe_audio(audio_file)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/openai_service.py", line 98, in transcribe_audio
+    response = client.audio.transcriptions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_utils/_utils.py", line 279, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/resources/audio/transcriptions.py", line 322, in create
+    return self._post(  # type: ignore[return-value]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 1242, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 919, in request
+    return self._request(
+           ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/_base_client.py", line 955, in _request
+    response = self._client.send(
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 914, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpx/_transports/default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/connection.py", line 103, in handle_request
+    return self._connection.handle_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 136, in handle_request
+    raise exc
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 106, in handle_request
+    ) = self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 177, in _receive_response_headers
+    event = self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_sync/http11.py", line 217, in _receive_event
+    data = self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/httpcore/_backends/sync.py", line 128, in read
+    return self._sock.recv(max_bytes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/ssl.py", line 1295, in recv
+    return self.read(buflen)
+           ^^^^^^^^^^^^^^^^^
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/ssl.py", line 1168, in read
+    return self._sslobj.read(len)
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/gunicorn/workers/base.py", line 204, in handle_abort
+    sys.exit(1)
+SystemExit: 1
+[2025-04-08 17:18:55 +0000] [926] [INFO] Worker exiting (pid: 926)
+[2025-04-08 17:18:55 +0000] [1011] [INFO] Booting worker with pid: 1011
+DEBUG:app:Database tables created or confirmed
