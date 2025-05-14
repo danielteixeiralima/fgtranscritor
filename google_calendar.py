@@ -47,15 +47,7 @@ def get_redirect_uri():
 REDIRECT_URI = os.environ["REDIRECT_URI"]
 
 
-# Print setup instructions for Google OAuth credentials
-logger.info(f"""
-Para configurar o Google Calendar, você precisa:
-1. Acessar: https://console.cloud.google.com/apis/credentials
-2. Criar um novo projeto e habilitar a API do Google Calendar
-3. Criar um novo Cliente OAuth
-4. Adicionar {REDIRECT_URI} como URI de redirecionamento autorizado
-5. Definir as variáveis de ambiente GOOGLE_OAUTH_CLIENT_ID e GOOGLE_OAUTH_CLIENT_SECRET
-""")
+
 
 def create_oauth_flow():
     """

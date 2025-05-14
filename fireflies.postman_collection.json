@@ -1,0 +1,50 @@
+{
+    "info": {
+      "_postman_id": "c52c073f-d4cf-4d3d-813c-b8c7f71dcb92",
+      "name": "Fireflies ListTranscripts",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "ListTranscripts",
+        "request": {
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json",
+              "type": "text"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99",
+              "type": "text"
+            },
+            {
+              "key": "x-apollo-operation-name",
+              "value": "ListTranscripts",
+              "type": "text"
+            }
+          ],
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"operationName\": \"ListTranscripts\",\n  \"query\": \"query ListTranscripts($limit:Int,$skip:Int){transcripts(limit:$limit,skip:$skip){id title date transcript_url audio_url video_url meeting_link duration participants summary{overview} analytics{sentiments{positive_pct neutral_pct negative_pct}}}}\",\n  \"variables\": {\n    \"limit\": 10,\n    \"skip\": 0\n  }\n}"
+          },
+          "url": {
+            "raw": "https://api.fireflies.ai/graphql",
+            "protocol": "https",
+            "host": ["api", "fireflies", "ai"],
+            "path": ["graphql"]
+          }
+        },
+        "response": []
+      }
+    ]
+  }
+
+
+
+curl
+
+{"operationName":"GetTranscript","query":"query GetTranscript($id:String!){transcript(id:$id){id title date transcript_url audio_url video_url meeting_link duration participants summary{overview bullet_gist}analytics{sentiments{positive_pct neutral_pct negative_pct}categories{questions date_times tasks metrics}speakers{name duration word_count}}sentences{index speaker_name text start_time end_time}}}","variables":{"id":"01JV5HHC036NNBGB2QTNZY3XTD"}}
+  

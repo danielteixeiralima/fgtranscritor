@@ -491,86 +491,70 @@
     </div>
 </div>
 {% endblock %}
-
 {% block scripts %}
   {{ super() }}
 
   <script>
-    document
-      .getElementById('transcription-tab')
-      .addEventListener('shown.bs.tab', async () => {
-        // evita múltiplas requisições
-        if (window._transcriptLoaded) return;
-        window._transcriptLoaded = true;
+    async function loadTranscript() {
+      // ao invés de usar meeting.transcript_id, puxe direto do JSON que você passou:
+      const id = '{{ transcript_json.data.transcript.id }}';
+      console.log("▶️ Transcript ID usado no JS:", id);
 
-        const id = '{{ meeting.google_calendar_event_id or meeting.transcript_id }}';
-        const BODY = {
-            operationName: "GetTranscript",
-            query: `
-                query GetTranscript($id:String!){
-                transcript(id:$id){
-                    id
-                    title
-                    date
-                    transcript_url
-                    audio_url
-                    video_url
-                    meeting_link
-                    duration
-                    participants
-                    summary { overview bullet_gist }
-                    analytics {
-                    sentiments { positive_pct neutral_pct negative_pct }
-                    categories { questions date_times tasks metrics }
-                    speakers { name duration word_count }
-                    }
-                    sentences { index speaker_name text start_time end_time }
-                }
-                }`,
-            variables: { id }
-            };
+      if (!id) {
+        console.warn("Nenhum transcript_id definido.");
+        return;
+      }
 
+      const BODY = {
+        operationName: "GetTranscript",
+        query: `
+          query GetTranscript($id:String!){
+            transcript(id:$id){
+              id title date transcript_url audio_url video_url meeting_link duration participants
+              summary{overview bullet_gist}
+              analytics{sentiments{positive_pct neutral_pct negative_pct}categories{questions date_times tasks metrics}speakers{name duration word_count}}
+              sentences{index speaker_name text start_time end_time}
+            }
+          }`,
+        variables: { id }
+      };
 
-        try {
-            const resp = await fetch("https://api.fireflies.ai/graphql", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-apollo-operation-name": "GetTranscript",
-                "Authorization": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99"
-            },
-            body: JSON.stringify(BODY)
-            });
-            const responseJson = await resp.json();
-            console.log("Fireflies API response:", responseJson);
-            const { data } = responseJson;
-            const tr = data?.transcript;
+      try {
+        const resp = await fetch("https://api.fireflies.ai/graphql", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-apollo-operation-name": "GetTranscript",
+            "Authorization": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99"
+          },
+          body: JSON.stringify(BODY)
+        });
 
-          if (!tr) throw new Error("Transcript null");
+        console.log("Resposta HTTP:", resp.status, resp.statusText);
+        const responseJson = await resp.json();
+        console.log("🔥 Fireflies API full response:", responseJson);
 
-          // preenche players
-          document
-            .querySelector('#transcription-audio source')
-            .setAttribute('src', tr.audio_url);
-          document.getElementById('transcription-audio').load();
+        const tr = responseJson.data?.transcript;
+        console.log("🎯 data.transcript:", tr);
 
-          document
-            .querySelector('#transcription-video source')
-            .setAttribute('src', tr.video_url);
-          document.getElementById('transcription-video').load();
-
-          // preenche texto
-          const container = document.getElementById('transcription-text');
-          container.innerHTML = tr.sentences
-            .map(s => `<p class="mb-1">${s.text}</p>`)
-            .join('');
-
-        } catch (err) {
-        console.error("Erro ao carregar transcrição:", err);
-        document.getElementById('transcription-text').innerHTML =
-            '<p class="text-danger">Erro ao carregar transcrição.</p>';
+        if (!tr) {
+          console.error("Transcript veio null ou sem data:", responseJson);
+          return;
         }
 
-            });
+        document.querySelector('#transcription-audio source').setAttribute('src', tr.audio_url);
+        document.getElementById('transcription-audio').load();
+
+        document.querySelector('#transcription-video source').setAttribute('src', tr.video_url);
+        document.getElementById('transcription-video').load();
+
+        const container = document.getElementById('transcription-text');
+        container.innerHTML = tr.sentences.map(s => `<p class="mb-1">${s.text}</p>`).join('');
+      } catch (err) {
+        console.error("Erro ao carregar transcrição on load:", err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadTranscript);
   </script>
 {% endblock %}

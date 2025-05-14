@@ -364,59 +364,25 @@ def analyze():
         return redirect(url_for('new_meeting'))
 
 
+
 def fetch_fireflies_transcript(ff_id):
     """
     Busca o transcript completo da API Fireflies.ai via GraphQL.
     Retorna o JSON bruto exatamente como no Postman.
+    Exibe no console o campo 'data' da resposta.
     """
-    query = """
-    query GetTranscript($id: String!) {
-      transcript(id: $id) {
-        id
-        title
-        date
-        transcript_url
-        audio_url
-        video_url
-        meeting_link
-        duration
-        participants
-        summary {
-          overview
-          bullet_gist
-        }
-        analytics {
-          sentiments {
-            positive_pct
-            neutral_pct
-            negative_pct
-          }
-          categories {
-            questions
-            date_times
-            tasks
-            metrics
-          }
-          speakers {
-            name
-            duration
-            word_count
-          }
-        }
-        sentences {
-          index
-          speaker_name
-          text
-          start_time
-          end_time
-        }
-      }
-    }
-    """
-
     body = {
         "operationName": "GetTranscript",
-        "query": query,
+        "query": (
+            "query GetTranscript($id:String!){"
+            "transcript(id:$id){"
+            "id title date transcript_url audio_url video_url meeting_link duration participants "
+            "summary{overview bullet_gist}"
+            "analytics{sentiments{positive_pct neutral_pct negative_pct}"
+            "categories{questions date_times tasks metrics}"
+            "speakers{name duration word_count}}"
+            "sentences{index speaker_name text start_time end_time}}}"
+        ),
         "variables": {"id": ff_id}
     }
     headers = {
@@ -431,7 +397,12 @@ def fetch_fireflies_transcript(ff_id):
         headers=headers
     )
     resp.raise_for_status()
-    return resp.json()
+    response_json = resp.json()
+
+    # imprime no console todo o objeto 'data'
+    print("🔍 Fireflies API returned data:", response_json.get("data"))
+
+    return response_json
 
 
 @app.route('/meetings/<int:meeting_id>')
@@ -443,7 +414,10 @@ def meeting_detail(meeting_id):
         flash('Você não tem permissão para acessar esta reunião!', 'danger')
         return redirect(url_for('dashboard'))
 
-    ff_id = meeting.results.get('transcript', {}).get('id')
+    # Para teste rápido, você pode substituir ff_id literal aqui:
+    ff_id = "01JV5HHC036NNBGB2QTNZY3XTD"
+    # ou usar: ff_id = meeting.results.get('transcript', {}).get('id')
+
     if not ff_id:
         flash('Transcript ID não encontrado. Não é possível buscar no Fireflies.', 'warning')
         return render_template(
@@ -455,27 +429,29 @@ def meeting_detail(meeting_id):
             sentences=[]
         )
 
-    transcript_json = None
+    try:
+        transcript_json = fetch_fireflies_transcript(ff_id)
+    except Exception as e:
+        print("❌ Erro ao chamar fetch_fireflies_transcript:", e)
+        flash(f"Erro ao obter transcrição externa: {e}", "warning")
+        transcript_json = None
+
     audio_url = None
     video_url = None
     sentences = []
 
-    try:
-        transcript_json = fetch_fireflies_transcript(ff_id)
-        tr = transcript_json.get("data", {}).get("transcript")
+    if transcript_json:
+        # imprime de novo no console, só o 'data' dentro da view
+        print("➡️ meeting_detail recebeu data:", transcript_json.get("data"))
+
+        tr = transcript_json["data"].get("transcript")
         if tr:
             audio_url = tr.get("audio_url")
             video_url = tr.get("video_url")
             sentences = [s.get("text", "") for s in tr.get("sentences", [])]
         else:
-            logger.error(f"Fireflies retornou transcript null: {transcript_json!r}")
-            flash(
-                f"Transcrição externa retornou vazia. Resposta da API: {transcript_json}",
-                "warning"
-            )
-    except Exception as e:
-        logger.exception("Erro ao buscar transcript Fireflies")
-        flash(f"Erro ao obter transcrição externa: {e}", "warning")
+            print("⚠️ Fireflies retornou transcript null:", transcript_json)
+            flash(f"Transcrição externa retornou vazia. Resposta da API: {transcript_json}", "warning")
 
     return render_template(
         'results.html',
@@ -486,6 +462,7 @@ def meeting_detail(meeting_id):
         sentences=sentences,
         transcript_json=transcript_json
     )
+
 
 @app.route('/meetings/<int:meeting_id>/delete', methods=['POST'])
 @login_required
