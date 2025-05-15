@@ -200,107 +200,86 @@ def dashboard():
 @login_required
 def list_meetings():
     """List all user meetings with filtering and sorting options"""
-    # Get filter parameters
     search = request.args.get('search', '')
     language = request.args.get('language', '')
     sort_by = request.args.get('sort_by', 'created_at')
     sort_order = request.args.get('sort_order', 'desc')
     show_all = request.args.get('show_all', 'false').lower() == 'true'
-    
-    # Sincronizar reuniões do Google Calendar quando conectado
+
+    # sync do Google Calendar se conectado
     if current_user.google_calendar_enabled:
         try:
-            # Get user's Google credentials
-            credentials = current_user.get_google_credentials()
-            
-            # Build Google Calendar service
-            service = build_service(credentials)
-            
-            # Sincroniza eventos do calendário com reuniões no banco
+            creds = current_user.get_google_credentials()
+            service = build_service(creds)
             sync_calendar_events_to_meetings(service)
         except Exception as e:
-            logger.error(f"Error syncing calendar events to meetings: {str(e)}")
-            # Continue without syncing if there's an error
-    
-    # Base query
+            logger.error(f"Error syncing calendar events to meetings: {e}")
+
+    # base da query: só reuniões do usuário
     query = Meeting.query.filter_by(user_id=current_user.id)
-    
-    # Filtrar reuniões do Google Calendar conectado atual
+
+    # se está conectado e não quer todas, mostrar apenas as do calendário atual
     if current_user.google_calendar_enabled and not show_all:
-        # Lista para armazenar IDs dos eventos do calendário atual
-        current_calendar_event_ids = []
-        
         try:
-            # Get user's Google credentials
-            credentials = current_user.get_google_credentials()
-            
-            # Build Google Calendar service
-            service = build_service(credentials)
-            
-            # Get events from this calendar (past week and upcoming)
+            creds = current_user.get_google_credentials()
+            service = build_service(creds)
             events = list_upcoming_events(service, max_results=50, include_recent=True)
-            
-            # Extract event IDs
-            for event in events:
-                current_calendar_event_ids.append(event['id'])
-                
-            if current_calendar_event_ids:
-                # Exibe apenas reuniões com evento_id nulo (reuniões criadas manualmente) OU
-                # reuniões com evento_id no calendário atual
-                query = query.filter(
-                    db.or_(
-                        Meeting.google_calendar_event_id.is_(None),
-                        Meeting.google_calendar_event_id.in_(current_calendar_event_ids)
-                    )
-                )
-                
+            current_ids = [ev['id'] for ev in events]
+            # filtra _apenas_ reuniões cujo google_calendar_event_id esteja neste calendário
+            if current_ids:
+                query = query.filter(Meeting.google_calendar_event_id.in_(current_ids))
+            else:
+                # se não há eventos, retorna lista vazia
+                return render_template('meetings.html',
+                                       meetings=[],
+                                       languages=[],
+                                       current_search=search,
+                                       current_language=language,
+                                       current_sort_by=sort_by,
+                                       current_sort_order=sort_order,
+                                       show_all=show_all)
         except Exception as e:
-            logger.error(f"Error fetching calendar events for filtering: {str(e)}")
-            # Em caso de erro, continua sem filtrar
-    
-    # Apply search filter (title)
+            logger.error(f"Error fetching calendar events for filtering: {e}")
+
+    # filtro por busca no título
     if search:
         query = query.filter(Meeting.title.ilike(f'%{search}%'))
-    
-    # Apply language filter
+    # filtro por idioma
     if language:
         query = query.filter(Meeting.language == language)
-    
-    # Apply sorting
+
+    # ordenação
     if sort_by == 'title':
-        order_column = Meeting.title
+        order_col = Meeting.title
     elif sort_by == 'alignment_score':
-        order_column = Meeting.alignment_score
+        order_col = Meeting.alignment_score
     elif sort_by == 'meeting_date':
-        order_column = Meeting.meeting_date
-    else:  # default: created_at
-        order_column = Meeting.created_at
-    
-    if sort_order == 'asc':
-        query = query.order_by(order_column.asc())
+        order_col = Meeting.meeting_date
     else:
-        query = query.order_by(order_column.desc())
-    
-    # Get all meetings
+        order_col = Meeting.created_at
+
+    query = query.order_by(order_col.asc() if sort_order == 'asc' else order_col.desc())
+
     meetings = query.all()
-    
-    # Get unique languages for the filter dropdown
-    languages = db.session.query(Meeting.language).filter(
-        Meeting.user_id == current_user.id,
-        Meeting.language != None,
-        Meeting.language != ''
-    ).distinct().all()
-    
-    languages = [l[0] for l in languages if l[0]]
-    
-    return render_template('meetings.html', 
-                          meetings=meetings, 
-                          languages=languages,
-                          current_search=search,
-                          current_language=language,
-                          current_sort_by=sort_by,
-                          current_sort_order=sort_order,
-                          show_all=show_all)
+
+    # idiomas para dropdown
+    langs = (db.session.query(Meeting.language)
+             .filter(Meeting.user_id == current_user.id,
+                     Meeting.language.isnot(None),
+                     Meeting.language != '')
+             .distinct()
+             .all())
+    languages = [l[0] for l in langs if l[0]]
+
+    return render_template('meetings.html',
+                           meetings=meetings,
+                           languages=languages,
+                           current_search=search,
+                           current_language=language,
+                           current_sort_by=sort_by,
+                           current_sort_order=sort_order,
+                           show_all=show_all)
+
 
 @app.route('/new-meeting')
 @login_required
@@ -399,10 +378,47 @@ def fetch_fireflies_transcript(ff_id):
     resp.raise_for_status()
     response_json = resp.json()
 
-    # imprime no console todo o objeto 'data'
     print("🔍 Fireflies API returned data:", response_json.get("data"))
-
     return response_json
+
+
+def fetch_fireflies_id_by_title(title, limit=50):
+    """
+    Busca na API Fireflies.ai o ID da transcrição correspondente ao título dado.
+    Como o GraphQL não aceita filtro por título, busca os primeiros `limit` e filtra em Python.
+    Retorna o primeiro 'id' cujo title bate exatamente, ou None.
+    """
+    body = {
+        "operationName": "ListTranscripts",
+        "query": (
+            "query ListTranscripts($limit:Int,$skip:Int){"
+            "transcripts(limit:$limit,skip:$skip){"
+            "id title date transcript_url audio_url video_url meeting_link duration participants }}"
+        ),
+        "variables": {"limit": limit, "skip": 0}
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "x-apollo-operation-name": "ListTranscripts",
+        "Authorization": f"Bearer {os.environ['FIREFLIES_API_TOKEN']}"
+    }
+
+    resp = requests.post(
+        "https://api.fireflies.ai/graphql",
+        json=body,
+        headers=headers
+    )
+    resp.raise_for_status()
+    data = resp.json().get("data", {}).get("transcripts", [])
+
+    for tx in data:
+        if tx.get("title") == title:
+            ff_id = tx.get("id")
+            print(f"✅ ff_id encontrado para '{title}': {ff_id}")
+            return ff_id
+
+    print(f"⚠️ Nenhuma transcrição com title='{title}' nos primeiros {limit}")
+    return None
 
 
 @app.route('/meetings/<int:meeting_id>')
@@ -414,12 +430,9 @@ def meeting_detail(meeting_id):
         flash('Você não tem permissão para acessar esta reunião!', 'danger')
         return redirect(url_for('dashboard'))
 
-    # Para teste rápido, você pode substituir ff_id literal aqui:
-    ff_id = "01JV5HHC036NNBGB2QTNZY3XTD"
-    # ou usar: ff_id = meeting.results.get('transcript', {}).get('id')
-
+    ff_id = fetch_fireflies_id_by_title(meeting.title)
     if not ff_id:
-        flash('Transcript ID não encontrado. Não é possível buscar no Fireflies.', 'warning')
+        flash('Transcript ID não encontrado para este título.', 'warning')
         return render_template(
             'results.html',
             results=meeting.results,
@@ -441,9 +454,7 @@ def meeting_detail(meeting_id):
     sentences = []
 
     if transcript_json:
-        # imprime de novo no console, só o 'data' dentro da view
         print("➡️ meeting_detail recebeu data:", transcript_json.get("data"))
-
         tr = transcript_json["data"].get("transcript")
         if tr:
             audio_url = tr.get("audio_url")
@@ -462,6 +473,7 @@ def meeting_detail(meeting_id):
         sentences=sentences,
         transcript_json=transcript_json
     )
+
 
 
 @app.route('/meetings/<int:meeting_id>/delete', methods=['POST'])
