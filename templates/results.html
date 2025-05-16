@@ -497,8 +497,7 @@
   <script>
     async function loadTranscript() {
       // ao invés de usar meeting.transcript_id, puxe direto do JSON que você passou:
-      const id = '{{ transcript_json.data.transcript.id }}';
-      console.log("▶️ Transcript ID usado no JS:", id);
+      const id = '{{ transcript_json and transcript_json.data and transcript_json.data.transcript and transcript_json.data.transcript.id or "" }}';
 
       if (!id) {
         console.warn("Nenhum transcript_id definido.");

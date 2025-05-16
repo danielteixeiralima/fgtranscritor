@@ -50,7 +50,7 @@ class Meeting(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(500), nullable=False)  # Aumentado de 120 para 500 caracteres
     agenda = db.Column(db.Text, nullable=False)
-    transcription = db.Column(db.Text, nullable=False)
+    transcription = db.Column(db.Text, nullable=True)
     language = db.Column(db.String(10), default='auto')  # Auto-detected language
     alignment_score = db.Column(db.Float)
     meeting_date = db.Column(db.DateTime, nullable=True)

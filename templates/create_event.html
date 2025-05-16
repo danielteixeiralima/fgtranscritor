@@ -104,7 +104,7 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Define today's date as default
+    // Define today’s date as default
     const today = new Date();
     const formatDate = (date) => {
         const year = date.getFullYear();
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('start_date').value = formatDate(today);
     document.getElementById('end_date').value = formatDate(today);
     
-    // Set default time (current time + 1 hour)
+    // Set default time (current time + one hour)
     const now = new Date();
     const nextHour = new Date(now.getTime() + 60 * 60 * 1000);
     const formatTime = (date) => {

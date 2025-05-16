@@ -72,6 +72,7 @@
                                     {% if event.attendees %}
                                         <ul class="list-unstyled">
                                             {% for attendee in event.attendees %}
+                                                {% if attendee.email != 'hub@inovailab.com' %}
                                                 <li>
                                                     <span class="me-2">
                                                         {% if attendee.responseStatus == 'accepted' %}
@@ -86,6 +87,7 @@
                                                     </span>
                                                     {{ attendee.email }}
                                                 </li>
+                                                {% endif %}
                                             {% endfor %}
                                         </ul>
                                     {% else %}

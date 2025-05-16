@@ -41,6 +41,7 @@
     <div class="card-body">
         <form action="{{ url_for('list_meetings') }}" method="get" class="row g-3" id="filterForm">
             <input type="hidden" id="show_all" name="show_all" value="{{ 'true' if show_all else 'false' }}">
+            <input type="hidden" name="page" value="1">
             <div class="col-md-4">
                 <label for="search" class="form-label">Pesquisar por título:</label>
                 <div class="input-group">
@@ -155,12 +156,13 @@
                         </td>
                         <td>
                             <div class="btn-group">
-                                <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" 
-                                   class="btn btn-sm btn-outline-primary meeting-detail-link" 
-                                   title="Ver detalhes"
-                                   data-ff-id="{{ meeting.google_calendar_event_id or meeting.transcript_id }}">
-                                    <i data-feather="eye"></i>
-                                </a>
+                                <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}"
+   class="btn btn-sm btn-outline-primary meeting-detail-link"
+   title="Ver detalhes"
+   data-ff-id="{{ meeting.google_calendar_event_id or '' }}"
+   data-title="{{ meeting.title }}">
+  <i data-feather="eye"></i>
+</a>
                                 <button type="button" class="btn btn-sm btn-outline-danger" 
                                         title="Excluir" data-bs-toggle="modal" 
                                         data-bs-target="#deleteModal{{ meeting.id }}">
@@ -199,6 +201,32 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Paginação -->
+        <nav aria-label="Paginação de reuniões">
+          <ul class="pagination justify-content-center mt-4">
+            {% if page > 1 %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('list_meetings', search=current_search, language=current_language, sort_by=current_sort_by, sort_order=current_sort_order, show_all='true' if show_all else 'false', page=page-1) }}">&laquo;</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+            {% endif %}
+            {% for p in range(1, total_pages + 1) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+              <a class="page-link" href="{{ url_for('list_meetings', search=current_search, language=current_language, sort_by=current_sort_by, sort_order=current_sort_order, show_all='true' if show_all else 'false', page=p) }}">{{ p }}</a>
+            </li>
+            {% endfor %}
+            {% if page < total_pages %}
+            <li class="page-item">
+              <a class="page-link" href="{{ url_for('list_meetings', search=current_search, language=current_language, sort_by=current_sort_by, sort_order=current_sort_order, show_all='true' if show_all else 'false', page=page+1) }}">&raquo;</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            {% endif %}
+          </ul>
+        </nav>
+
         {% else %}
         <div class="text-center py-5">
             {% if current_search or current_language %}
@@ -225,7 +253,8 @@
     function toggleShowAll(checked) {
         // Atualiza o campo hidden
         document.getElementById('show_all').value = checked ? 'true' : 'false';
-        
+        // Sempre resetar p/ página 1
+        document.querySelector('input[name="page"]').value = 1;
         // Envia o formulário
         document.getElementById('filterForm').submit();
     }

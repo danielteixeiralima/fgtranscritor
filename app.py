@@ -199,56 +199,80 @@ def dashboard():
 @app.route('/meetings')
 @login_required
 def list_meetings():
-    """List all user meetings with filtering and sorting options"""
+    """List all user meetings with filtering, sorting and pagination (10 por página)"""
     search = request.args.get('search', '')
     language = request.args.get('language', '')
     sort_by = request.args.get('sort_by', 'created_at')
     sort_order = request.args.get('sort_order', 'desc')
     show_all = request.args.get('show_all', 'false').lower() == 'true'
+    page = int(request.args.get('page', 1))
 
-    # sync do Google Calendar se conectado
-    if current_user.google_calendar_enabled:
-        try:
-            creds = current_user.get_google_credentials()
-            service = build_service(creds)
-            sync_calendar_events_to_meetings(service)
-        except Exception as e:
-            logger.error(f"Error syncing calendar events to meetings: {e}")
+    # Se o usuário NÃO estiver conectado ao Google Calendar, não retorna nenhuma reunião
+    if not current_user.google_calendar_enabled:
+        return render_template('meetings.html',
+                               meetings=[],
+                               languages=[],
+                               current_search=search,
+                               current_language=language,
+                               current_sort_by=sort_by,
+                               current_sort_order=sort_order,
+                               show_all=show_all,
+                               page=1,
+                               total_pages=0)
 
-    # base da query: só reuniões do usuário
-    query = Meeting.query.filter_by(user_id=current_user.id)
+    # Se o usuário tiver Google Calendar habilitado, primeiro sincroniza tudo
+    try:
+        creds = current_user.get_google_credentials()
+        service = build_service(creds)
+        sync_calendar_events_to_meetings(service)
+    except Exception as e:
+        logger.error(f"Error syncing calendar events to meetings: {e}")
 
-    # se está conectado e não quer todas, mostrar apenas as do calendário atual
-    if current_user.google_calendar_enabled and not show_all:
+    # Caso o filtro seja "mostrar só do calendário" (show_all == False)
+    if not show_all:
         try:
             creds = current_user.get_google_credentials()
             service = build_service(creds)
             events = list_upcoming_events(service, max_results=50, include_recent=True)
-            current_ids = [ev['id'] for ev in events]
-            # filtra _apenas_ reuniões cujo google_calendar_event_id esteja neste calendário
-            if current_ids:
-                query = query.filter(Meeting.google_calendar_event_id.in_(current_ids))
-            else:
-                # se não há eventos, retorna lista vazia
-                return render_template('meetings.html',
-                                       meetings=[],
-                                       languages=[],
-                                       current_search=search,
-                                       current_language=language,
-                                       current_sort_by=sort_by,
-                                       current_sort_order=sort_order,
-                                       show_all=show_all)
+            # Monta lista de reuniões exatamente na ordem dos eventos
+            meetings_page = []
+            for ev in events:
+                m = Meeting.query.filter_by(
+                    user_id=current_user.id,
+                    google_calendar_event_id=ev['id']
+                ).first()
+                if m:
+                    meetings_page.append(m)
+            # Sem paginação, mantemos a ordem do calendário
+            total_pages = 1
+            langs = (db.session.query(Meeting.language)
+                     .filter(Meeting.user_id == current_user.id,
+                             Meeting.language.isnot(None),
+                             Meeting.language != '')
+                     .distinct().all())
+            languages = [l[0] for l in langs if l[0]]
+            return render_template('meetings.html',
+                                   meetings=meetings_page,
+                                   languages=languages,
+                                   current_search=search,
+                                   current_language=language,
+                                   current_sort_by=sort_by,
+                                   current_sort_order=sort_order,
+                                   show_all=show_all,
+                                   page=1,
+                                   total_pages=total_pages)
         except Exception as e:
             logger.error(f"Error fetching calendar events for filtering: {e}")
+            # fallback para listagem normal abaixo
 
-    # filtro por busca no título
+    # Caso geral (busca, filtro de idioma e ordenação)
+    query = Meeting.query.filter_by(user_id=current_user.id)
     if search:
         query = query.filter(Meeting.title.ilike(f'%{search}%'))
-    # filtro por idioma
     if language:
         query = query.filter(Meeting.language == language)
 
-    # ordenação
+    # Define coluna de ordenação
     if sort_by == 'title':
         order_col = Meeting.title
     elif sort_by == 'alignment_score':
@@ -260,25 +284,29 @@ def list_meetings():
 
     query = query.order_by(order_col.asc() if sort_order == 'asc' else order_col.desc())
 
-    meetings = query.all()
+    # Paginação normal
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
+    meetings_page = pagination.items
+    total_pages = pagination.pages
 
-    # idiomas para dropdown
     langs = (db.session.query(Meeting.language)
              .filter(Meeting.user_id == current_user.id,
                      Meeting.language.isnot(None),
                      Meeting.language != '')
-             .distinct()
-             .all())
+             .distinct().all())
     languages = [l[0] for l in langs if l[0]]
 
     return render_template('meetings.html',
-                           meetings=meetings,
+                           meetings=meetings_page,
                            languages=languages,
                            current_search=search,
                            current_language=language,
                            current_sort_by=sort_by,
                            current_sort_order=sort_order,
-                           show_all=show_all)
+                           show_all=show_all,
+                           page=page,
+                           total_pages=total_pages)
+
 
 
 @app.route('/new-meeting')
@@ -1167,6 +1195,10 @@ def create_event():
             if request.form.get('attendees'):
                 attendees = [email.strip() for email in request.form.get('attendees').split(',') if email.strip()]
             
+            # Garantir que hub@inovailab.com sempre seja chamado apenas uma vez
+            if "hub@inovailab.com" not in attendees:
+                attendees.append("hub@inovailab.com")
+            
             # Get agenda
             agenda = request.form.get('agenda', '')
             
@@ -1201,6 +1233,7 @@ def create_event():
             return redirect(url_for('create_event'))
             
     return render_template('create_event.html')
+
     
 @app.route('/generate_agenda', methods=['GET', 'POST'])
 @login_required
