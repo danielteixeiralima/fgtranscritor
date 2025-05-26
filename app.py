@@ -14,6 +14,9 @@ from openai_service import analyze_meeting, transcribe_audio, generate_meeting_a
 from models import db, User, Meeting
 from templates_data import WEB_SUMMIT_AGENDA, CAKE_RECIPE_AGENDA, HOURLY_COST
 import requests
+from flask_migrate import Migrate
+
+
 
 
 # Configure logging
@@ -39,7 +42,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 
 # Initialize database
 db.init_app(app)
-
+migrate = Migrate(app, db)
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -196,18 +199,55 @@ def dashboard():
     
     return render_template('dashboard.html', meetings=recent_meetings, stats=stats)
 
+def sync_calendar_events_to_meetings(service):
+    events = list_upcoming_events(service, max_results=50, include_recent=True)
+    event_to_meeting = {}
+    for event in events:
+        event_id = event.get('id')
+        existing = Meeting.query.filter_by(
+            user_id=current_user.id,
+            google_calendar_event_id=event_id
+        ).first()
+        if existing:
+            event_to_meeting[event_id] = existing.id
+            continue
+        description = event.get('description', '') or ''
+        agenda = ''
+        if '--- AGENDA ---' in description:
+            agenda = description.split('--- AGENDA ---', 1)[1].strip()
+        start_dt = None
+        if 'dateTime' in (event.get('start') or {}):
+            start_dt = datetime.fromisoformat(
+                event['start']['dateTime'].replace('Z', '+00:00')
+            )
+        created_dt = None
+        if event.get('created'):
+            created_dt = datetime.fromisoformat(
+                event['created'].replace('Z', '+00:00')
+            )
+        new_meeting = Meeting(
+            title=event.get('summary', 'Reunião sem título'),
+            agenda=agenda or 'Pauta não definida',
+            transcription='',
+            meeting_date=start_dt,
+            created_at=created_dt,
+            user_id=current_user.id,
+            google_calendar_event_id=event_id
+        )
+        db.session.add(new_meeting)
+        db.session.commit()
+        event_to_meeting[event_id] = new_meeting.id
+    return event_to_meeting
+
 @app.route('/meetings')
 @login_required
 def list_meetings():
-    """List all user meetings with filtering, sorting and pagination (10 por página)"""
-    search = request.args.get('search', '')
-    language = request.args.get('language', '')
-    sort_by = request.args.get('sort_by', 'created_at')
-    sort_order = request.args.get('sort_order', 'desc')
-    show_all = request.args.get('show_all', 'false').lower() == 'true'
-    page = int(request.args.get('page', 1))
-
-    # Se o usuário NÃO estiver conectado ao Google Calendar, não retorna nenhuma reunião
+    search      = request.args.get('search', '')
+    language    = request.args.get('language', '')
+    sort_by     = request.args.get('sort_by', 'created_at')
+    sort_order  = request.args.get('sort_order', 'desc')
+    show_all    = request.args.get('show_all', 'false').lower() == 'true'
+    page        = int(request.args.get('page', 1))
     if not current_user.google_calendar_enabled:
         return render_template('meetings.html',
                                meetings=[],
@@ -219,93 +259,63 @@ def list_meetings():
                                show_all=show_all,
                                page=1,
                                total_pages=0)
-
-    # Se o usuário tiver Google Calendar habilitado, primeiro sincroniza tudo
     try:
-        creds = current_user.get_google_credentials()
+        creds   = current_user.get_google_credentials()
         service = build_service(creds)
         sync_calendar_events_to_meetings(service)
     except Exception as e:
-        logger.error(f"Error syncing calendar events to meetings: {e}")
-
-    # Caso o filtro seja "mostrar só do calendário" (show_all == False)
-    if not show_all:
-        try:
-            creds = current_user.get_google_credentials()
-            service = build_service(creds)
-            events = list_upcoming_events(service, max_results=50, include_recent=True)
-            # Monta lista de reuniões exatamente na ordem dos eventos
-            meetings_page = []
-            for ev in events:
-                m = Meeting.query.filter_by(
-                    user_id=current_user.id,
-                    google_calendar_event_id=ev['id']
-                ).first()
-                if m:
-                    meetings_page.append(m)
-            # Sem paginação, mantemos a ordem do calendário
-            total_pages = 1
-            langs = (db.session.query(Meeting.language)
-                     .filter(Meeting.user_id == current_user.id,
-                             Meeting.language.isnot(None),
-                             Meeting.language != '')
-                     .distinct().all())
-            languages = [l[0] for l in langs if l[0]]
-            return render_template('meetings.html',
-                                   meetings=meetings_page,
-                                   languages=languages,
-                                   current_search=search,
-                                   current_language=language,
-                                   current_sort_by=sort_by,
-                                   current_sort_order=sort_order,
-                                   show_all=show_all,
-                                   page=1,
-                                   total_pages=total_pages)
-        except Exception as e:
-            logger.error(f"Error fetching calendar events for filtering: {e}")
-            # fallback para listagem normal abaixo
-
-    # Caso geral (busca, filtro de idioma e ordenação)
-    query = Meeting.query.filter_by(user_id=current_user.id)
+        logger.error(f"Error syncing calendar events: {e}")
+    creds   = current_user.get_google_credentials()
+    service = build_service(creds)
+    resp    = service.events().list(
+                  calendarId='primary',
+                  singleEvents=True,
+                  orderBy='startTime',
+                  maxResults=2500
+              ).execute()
+    events    = resp.get('items', [])
+    event_ids = [ev['id'] for ev in events]
+    if show_all:
+        query = Meeting.query.filter_by(user_id=current_user.id)
+    else:
+        query = Meeting.query.filter(
+            Meeting.user_id == current_user.id,
+            Meeting.google_calendar_event_id.in_(event_ids)
+        )
+    query = query.filter(Meeting.meeting_date <= datetime.utcnow())
     if search:
         query = query.filter(Meeting.title.ilike(f'%{search}%'))
     if language:
         query = query.filter(Meeting.language == language)
-
-    # Define coluna de ordenação
-    if sort_by == 'title':
-        order_col = Meeting.title
-    elif sort_by == 'alignment_score':
-        order_col = Meeting.alignment_score
-    elif sort_by == 'meeting_date':
-        order_col = Meeting.meeting_date
-    else:
-        order_col = Meeting.created_at
-
+    col_map = {
+        'title': Meeting.title,
+        'alignment_score': Meeting.alignment_score,
+        'meeting_date': Meeting.meeting_date,
+        'created_at': Meeting.created_at
+    }
+    order_col = col_map.get(sort_by, Meeting.created_at)
     query = query.order_by(order_col.asc() if sort_order == 'asc' else order_col.desc())
-
-    # Paginação normal
-    pagination = query.paginate(page=page, per_page=10, error_out=False)
+    pagination    = query.paginate(page=page, per_page=10, error_out=False)
     meetings_page = pagination.items
-    total_pages = pagination.pages
-
+    total_pages   = pagination.pages
     langs = (db.session.query(Meeting.language)
              .filter(Meeting.user_id == current_user.id,
                      Meeting.language.isnot(None),
                      Meeting.language != '')
              .distinct().all())
     languages = [l[0] for l in langs if l[0]]
-
-    return render_template('meetings.html',
-                           meetings=meetings_page,
-                           languages=languages,
-                           current_search=search,
-                           current_language=language,
-                           current_sort_by=sort_by,
-                           current_sort_order=sort_order,
-                           show_all=show_all,
-                           page=page,
-                           total_pages=total_pages)
+    return render_template(
+        'meetings.html',
+        meetings=meetings_page,
+        languages=languages,
+        current_search=search,
+        current_language=language,
+        current_sort_by=sort_by,
+        current_sort_order=sort_order,
+        show_all=show_all,
+        page=page,
+        total_pages=total_pages
+    )
 
 
 
@@ -452,45 +462,77 @@ def fetch_fireflies_id_by_title(title, limit=50):
 @app.route('/meetings/<int:meeting_id>')
 @login_required
 def meeting_detail(meeting_id):
-    """Mostra o detalhe de uma reunião, incluindo transcript do Fireflies."""
+    """Mostra o detalhe de uma reunião, incluindo transcript do Fireflies e análise automática."""
     meeting = Meeting.query.get_or_404(meeting_id)
     if meeting.user_id != current_user.id:
         flash('Você não tem permissão para acessar esta reunião!', 'danger')
         return redirect(url_for('dashboard'))
 
-    ff_id = fetch_fireflies_id_by_title(meeting.title)
-    if not ff_id:
-        flash('Transcript ID não encontrado para este título.', 'warning')
-        return render_template(
-            'results.html',
-            results=meeting.results,
-            meeting=meeting,
-            audio_url=None,
-            video_url=None,
-            sentences=[]
-        )
+    # 1) Se faltar FF-ID ou texto de transcrição, busca no Fireflies e persiste
+    needs_fetch = not (meeting.fireflies_transcript_id and meeting.transcription and meeting.transcription.strip())
+    if needs_fetch:
+        # 1a) garante o FF-ID
+        if not meeting.fireflies_transcript_id:
+            try:
+                ff_id = fetch_fireflies_id_by_title(meeting.title)
+                if ff_id:
+                    meeting.fireflies_transcript_id = ff_id
+                else:
+                    flash('Transcript ID não encontrado para este título.', 'warning')
+                    return render_template(
+                        'results.html',
+                        results=meeting.results,
+                        meeting=meeting,
+                        audio_url=None,
+                        video_url=None,
+                        sentences=[]
+                    )
+            except Exception as e:
+                logger.warning(f"Erro ao buscar FF-ID para '{meeting.title}': {e}")
+                flash('Não foi possível buscar o ID da transcrição.', 'warning')
+                return render_template(
+                    'results.html',
+                    results=meeting.results,
+                    meeting=meeting,
+                    audio_url=None,
+                    video_url=None,
+                    sentences=[]
+                )
 
-    try:
-        transcript_json = fetch_fireflies_transcript(ff_id)
-    except Exception as e:
-        print("❌ Erro ao chamar fetch_fireflies_transcript:", e)
-        flash(f"Erro ao obter transcrição externa: {e}", "warning")
-        transcript_json = None
+        # 1b) busca a transcrição completa e salva texto, áudio e vídeo
+        try:
+            transcript_json = fetch_fireflies_transcript(meeting.fireflies_transcript_id)
+            tr = transcript_json.get("data", {}).get("transcript") or {}
+        except Exception as e:
+            logger.error(f"Erro ao chamar fetch_fireflies_transcript: {e}")
+            flash(f"Erro ao obter transcrição externa: {e}", "warning")
+            tr = {}
 
-    audio_url = None
-    video_url = None
-    sentences = []
-
-    if transcript_json:
-        print("➡️ meeting_detail recebeu data:", transcript_json.get("data"))
-        tr = transcript_json["data"].get("transcript")
         if tr:
-            audio_url = tr.get("audio_url")
-            video_url = tr.get("video_url")
             sentences = [s.get("text", "") for s in tr.get("sentences", [])]
-        else:
-            print("⚠️ Fireflies retornou transcript null:", transcript_json)
-            flash(f"Transcrição externa retornou vazia. Resposta da API: {transcript_json}", "warning")
+            meeting.transcription = "\n".join(sentences)
+            meeting.audio_url     = tr.get("audio_url")
+            meeting.video_url     = tr.get("video_url")
+            db.session.commit()
+
+    # 2) Se já tiver transcrição, mas falta análise, executa analyze_meeting e persiste resultados
+    if meeting.transcription and meeting.transcription.strip() and not meeting.results_json:
+        try:
+            # reusa a função de análise manual para processar agenda + transcription
+            results = analyze_meeting(meeting.agenda, meeting.transcription)
+            meeting.results = results
+            # opcionalmente atualiza o idioma detectado
+            meeting.language = results.get('language', meeting.language)
+            db.session.commit()
+        except Exception as e:
+            logger.error(f"Erro ao analisar reunião {meeting.id}: {e}")
+            flash('Não foi possível gerar análise automática.', 'warning')
+
+    # 3) Prepara variáveis para renderizar
+    audio_url = meeting.audio_url
+    video_url = meeting.video_url
+    sentences = meeting.transcription.split("\n") if meeting.transcription else []
+    transcript_json = {"data": {"transcript": {"id": meeting.fireflies_transcript_id}}}
 
     return render_template(
         'results.html',
@@ -501,6 +543,9 @@ def meeting_detail(meeting_id):
         sentences=sentences,
         transcript_json=transcript_json
     )
+
+
+
 
 
 
@@ -1006,78 +1051,9 @@ def settings_google_calendar_disconnect():
         flash(f"Erro ao desconectar: {str(e)}", "danger")
         return redirect(url_for('settings'))
 
-def sync_calendar_events_to_meetings(service):
-    """
-    Sincroniza eventos do Google Calendar para a tabela de reuniões
-    
-    Args:
-        service: Serviço do Google Calendar
-        
-    Returns:
-        dict: Mapeamento de IDs de eventos para IDs de reuniões
-    """
-    # Obter eventos do calendário
-    events = list_upcoming_events(service, max_results=50, include_recent=True)
-    
-    # Mapear IDs de eventos para IDs de reuniões
-    event_to_meeting = {}
-    
-    for event in events:
-        event_id = event.get('id')
-        
-        # Verificar se o evento já está nas reuniões
-        existing_meeting = Meeting.query.filter_by(
-            user_id=current_user.id,
-            google_calendar_event_id=event_id
-        ).first()
-        
-        if existing_meeting:
-            # Se já existe, apenas atualize o mapeamento
-            event_to_meeting[event_id] = existing_meeting.id
-        else:
-            # Se não existe, crie uma nova entrada para o evento
-            try:
-                # Extrair agenda da descrição do evento
-                description = event.get('description', '')
-                agenda = ""
-                
-                if description and "--- AGENDA ---" in description:
-                    agenda = description.split("--- AGENDA ---")[1].strip()
-                
-                # Obter data e hora do evento
-                start_datetime = None
-                if 'dateTime' in event.get('start', {}):
-                    start_datetime = datetime.fromisoformat(
-                        event.get('start', {}).get('dateTime', '').replace('Z', '+00:00')
-                    )
-                
-                # Obter data de criação do evento
-                created_datetime = None
-                if 'created' in event:
-                    created_datetime = datetime.fromisoformat(
-                        event.get('created', '').replace('Z', '+00:00')
-                    )
-                
-                # Criar nova reunião
-                new_meeting = Meeting(
-                    title=event.get('summary', 'Reunião sem título'),
-                    agenda=agenda if agenda else "Pauta não definida",
-                    transcription="Esta reunião foi importada do Google Calendar e ainda não foi analisada.",
-                    user_id=current_user.id,
-                    meeting_date=start_datetime,
-                    created_at=created_datetime,  # Usar a data de criação do evento do calendário
-                    google_calendar_event_id=event_id
-                )
-                
-                db.session.add(new_meeting)
-                db.session.commit()
-                
-                event_to_meeting[event_id] = new_meeting.id
-            except Exception as e:
-                logger.error(f"Error syncing calendar event {event_id}: {str(e)}")
-                continue
-    
-    return event_to_meeting
+
+
+
 
 @app.route('/calendar')
 @login_required

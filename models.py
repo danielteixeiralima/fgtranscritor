@@ -57,9 +57,13 @@ class Meeting(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     results_json = db.Column(db.Text)  # Store the full analysis results as JSON
+    audio_url = db.Column(db.String(5000), nullable=True)
+    video_url = db.Column(db.String(5000), nullable=True)
+    fireflies_transcript_id = db.Column(db.String(255), nullable=True)
     
     # Google Calendar integration
     google_calendar_event_id = db.Column(db.String(255), nullable=True)  # ID do evento no Google Calendar
+    fireflies_transcript_id = db.Column(db.String(255), nullable=True)
     
     @property
     def results(self):

@@ -495,63 +495,57 @@
   {{ super() }}
 
   <script>
-    async function loadTranscript() {
-      // ao invés de usar meeting.transcript_id, puxe direto do JSON que você passou:
-      const id = '{{ transcript_json and transcript_json.data and transcript_json.data.transcript and transcript_json.data.transcript.id or "" }}';
+    function formatTime(seconds) {
+      const ms = Number(seconds) * 1000;
+      const date = new Date(ms);
+      const mm = String(date.getUTCMinutes()).padStart(2,'0');
+      const ss = String(date.getUTCSeconds()).padStart(2,'0');
+      return `${mm}:${ss}`;
+    }
 
-      if (!id) {
-        console.warn("Nenhum transcript_id definido.");
-        return;
-      }
+    async function loadTranscript() {
+      const id = '{{ transcript_json.data.transcript.id or "" }}';
+      if (!id) return;
 
       const BODY = {
         operationName: "GetTranscript",
-        query: `
-          query GetTranscript($id:String!){
-            transcript(id:$id){
-              id title date transcript_url audio_url video_url meeting_link duration participants
-              summary{overview bullet_gist}
-              analytics{sentiments{positive_pct neutral_pct negative_pct}categories{questions date_times tasks metrics}speakers{name duration word_count}}
-              sentences{index speaker_name text start_time end_time}
-            }
-          }`,
+        query: `query GetTranscript($id:String!){ transcript(id:$id){
+          sentences{index speaker_name text start_time end_time}
+          audio_url video_url
+        }}`,
         variables: { id }
       };
 
-      try {
-        const resp = await fetch("https://api.fireflies.ai/graphql", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-apollo-operation-name": "GetTranscript",
-            "Authorization": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99"
-          },
-          body: JSON.stringify(BODY)
-        });
+      const resp = await fetch("https://api.fireflies.ai/graphql", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-apollo-operation-name": "GetTranscript",
+          "Authorization": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99"
+        },
+        body: JSON.stringify(BODY)
+      });
+      const { data } = await resp.json();
+      const tr = data.transcript;
+      if (!tr) return;
 
-        console.log("Resposta HTTP:", resp.status, resp.statusText);
-        const responseJson = await resp.json();
-        console.log("🔥 Fireflies API full response:", responseJson);
+      // players
+      document.querySelector('#transcription-audio source').src = tr.audio_url;
+      document.getElementById('transcription-audio').load();
+      document.querySelector('#transcription-video source').src = tr.video_url;
+      document.getElementById('transcription-video').load();
 
-        const tr = responseJson.data?.transcript;
-        console.log("🎯 data.transcript:", tr);
-
-        if (!tr) {
-          console.error("Transcript veio null ou sem data:", responseJson);
-          return;
-        }
-
-        document.querySelector('#transcription-audio source').setAttribute('src', tr.audio_url);
-        document.getElementById('transcription-audio').load();
-
-        document.querySelector('#transcription-video source').setAttribute('src', tr.video_url);
-        document.getElementById('transcription-video').load();
-
-        const container = document.getElementById('transcription-text');
-        container.innerHTML = tr.sentences.map(s => `<p class="mb-1">${s.text}</p>`).join('');
-      } catch (err) {
-        console.error("Erro ao carregar transcrição on load:", err);
-      }
+      // texto com speaker + timestamp
+      const container = document.getElementById('transcription-text');
+      container.innerHTML = tr.sentences.map(s => `
+        <div class="mb-3">
+          <div class="fw-bold text-white">
+            ${s.speaker_name}
+            <span class="text-muted small ms-2">${formatTime(s.start_time)}</span>
+          </div>
+          <div class="text-light">${s.text}</div>
+        </div>
+      `).join('');
     }
 
     document.addEventListener('DOMContentLoaded', loadTranscript);
