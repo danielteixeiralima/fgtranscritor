@@ -15,6 +15,7 @@ from models import db, User, Meeting
 from templates_data import WEB_SUMMIT_AGENDA, CAKE_RECIPE_AGENDA, HOURLY_COST
 import requests
 from flask_migrate import Migrate
+import click
 
 
 
@@ -49,9 +50,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
 
-# Register template filters
-from filters import filters_bp
-app.register_blueprint(filters_bp)
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -62,9 +61,19 @@ def load_user(user_id):
         return None
 
 # Create tables if they don't exist
-with app.app_context():
-    db.create_all()
-    logger.debug("Database tables created or confirmed")
+# with app.app_context():
+#     db.create_all()
+#     logger.debug("Database tables created or confirmed")
+#     if not User.query.filter_by(username='admin').first():
+#         admin = User(
+#             username='admin',
+#             email='admin@bizarte.com.br',  # ajuste se quiser outro email
+#             admin=True
+#         )
+#         admin.set_password('admin123')
+#         db.session.add(admin)
+#         db.session.commit()
+#         logger.info("Usuário admin criado: admin / admin123")
 
 @app.route('/')
 def index():
@@ -114,6 +123,16 @@ def register():
         return redirect(url_for('login'))
     
     return render_template('register.html')
+
+
+@app.route('/users')
+@login_required
+def list_users():
+    if not current_user.is_admin:
+        flash('Permissão negada.', 'danger')
+        return redirect(url_for('dashboard'))
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('users.html', users=users)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
