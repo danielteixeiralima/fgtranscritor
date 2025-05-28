@@ -498,54 +498,74 @@
     function formatTime(seconds) {
       const ms = Number(seconds) * 1000;
       const date = new Date(ms);
-      const mm = String(date.getUTCMinutes()).padStart(2,'0');
-      const ss = String(date.getUTCSeconds()).padStart(2,'0');
+      const mm = String(date.getUTCMinutes()).padStart(2, '0');
+      const ss = String(date.getUTCSeconds()).padStart(2, '0');
       return `${mm}:${ss}`;
     }
 
     async function loadTranscript() {
-      const id = '{{ transcript_json.data.transcript.id or "" }}';
-      if (!id) return;
+      // transcript_json definido no render; pode ser string vazia
+      const id = '{{ transcript_json.data.transcript.id }}';
+      if (!id) return;  // sem ID, não carrega nada
 
       const BODY = {
         operationName: "GetTranscript",
-        query: `query GetTranscript($id:String!){ transcript(id:$id){
-          sentences{index speaker_name text start_time end_time}
-          audio_url video_url
-        }}`,
+        query: `
+          query GetTranscript($id:String!) {
+            transcript(id:$id) {
+              sentences { index speaker_name text start_time end_time }
+              audio_url
+              video_url
+            }
+          }`,
         variables: { id }
       };
 
-      const resp = await fetch("https://api.fireflies.ai/graphql", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-apollo-operation-name": "GetTranscript",
-          "Authorization": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99"
-        },
-        body: JSON.stringify(BODY)
-      });
-      const { data } = await resp.json();
-      const tr = data.transcript;
-      if (!tr) return;
+      try {
+        const resp = await fetch("https://api.fireflies.ai/graphql", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-apollo-operation-name": "GetTranscript",
+            "Authorization": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99"
+          },
+          body: JSON.stringify(BODY)
+        });
+        const json = await resp.json();
+        const tr = json?.data?.transcript;
+        if (!tr) return;
 
-      // players
-      document.querySelector('#transcription-audio source').src = tr.audio_url;
-      document.getElementById('transcription-audio').load();
-      document.querySelector('#transcription-video source').src = tr.video_url;
-      document.getElementById('transcription-video').load();
+        // Carrega áudio se disponível
+        if (tr.audio_url) {
+          const audioSource = document.querySelector('#transcription-audio source');
+          audioSource.src = tr.audio_url;
+          document.getElementById('transcription-audio').load();
+        }
 
-      // texto com speaker + timestamp
-      const container = document.getElementById('transcription-text');
-      container.innerHTML = tr.sentences.map(s => `
-        <div class="mb-3">
-          <div class="fw-bold text-white">
-            ${s.speaker_name}
-            <span class="text-muted small ms-2">${formatTime(s.start_time)}</span>
-          </div>
-          <div class="text-light">${s.text}</div>
-        </div>
-      `).join('');
+        // Carrega vídeo se disponível
+        if (tr.video_url) {
+          const videoSource = document.querySelector('#transcription-video source');
+          videoSource.src = tr.video_url;
+          document.getElementById('transcription-video').load();
+        }
+
+        // Preenche texto se houver sentenças
+        if (Array.isArray(tr.sentences) && tr.sentences.length) {
+          const container = document.getElementById('transcription-text');
+          container.innerHTML = tr.sentences.map(s => `
+            <div class="mb-3">
+              <div class="fw-bold text-white">
+                ${s.speaker_name}
+                <span class="text-muted small ms-2">${formatTime(s.start_time)}</span>
+              </div>
+              <div class="text-light">${s.text}</div>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.error("Falha ao carregar transcrição:", err);
+        // não propaga o erro para o usuário
+      }
     }
 
     document.addEventListener('DOMContentLoaded', loadTranscript);

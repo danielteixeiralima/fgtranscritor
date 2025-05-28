@@ -263,10 +263,11 @@ def sync_calendar_events_to_meetings(service):
 def list_meetings():
     search      = request.args.get('search', '')
     language    = request.args.get('language', '')
-    sort_by     = request.args.get('sort_by', 'created_at')
+    sort_by     = request.args.get('sort_by', 'meeting_date')  # default agora é meeting_date
     sort_order  = request.args.get('sort_order', 'desc')
     show_all    = request.args.get('show_all', 'false').lower() == 'true'
     page        = int(request.args.get('page', 1))
+
     if not current_user.google_calendar_enabled:
         return render_template('meetings.html',
                                meetings=[],
@@ -278,22 +279,64 @@ def list_meetings():
                                show_all=show_all,
                                page=1,
                                total_pages=0)
-    try:
-        creds   = current_user.get_google_credentials()
-        service = build_service(creds)
-        sync_calendar_events_to_meetings(service)
-    except Exception as e:
-        logger.error(f"Error syncing calendar events: {e}")
+
+    # 1) credenciais
     creds   = current_user.get_google_credentials()
     service = build_service(creds)
-    resp    = service.events().list(
-                  calendarId='primary',
-                  singleEvents=True,
-                  orderBy='startTime',
-                  maxResults=2500
-              ).execute()
-    events    = resp.get('items', [])
-    event_ids = [ev['id'] for ev in events]
+
+    # 2) busca TODOS os eventos passados em lotes (paginação da API) e sincroniza
+    now_iso    = datetime.utcnow().isoformat() + 'Z'
+    all_events = []
+    page_token = None
+    while True:
+        resp = service.events().list(
+            calendarId='primary',
+            singleEvents=True,
+            orderBy='startTime',
+            timeMax=now_iso,
+            pageToken=page_token,
+            maxResults=2500
+        ).execute()
+        batch = resp.get('items', [])
+        all_events.extend(batch)
+
+        for event in batch:
+            eid = event.get('id')
+            exists = Meeting.query.filter_by(
+                user_id=current_user.id,
+                google_calendar_event_id=eid
+            ).first()
+            if not exists:
+                desc = event.get('description','') or ''
+                if '--- AGENDA ---' in desc:
+                    agenda = desc.split('--- AGENDA ---',1)[1].strip()
+                else:
+                    agenda = 'Pauta não definida'
+
+                sd = event.get('start',{}).get('dateTime')
+                dt = datetime.fromisoformat(sd.replace('Z','+00:00')) if sd else None
+                cd = event.get('created')
+                cdt = datetime.fromisoformat(cd.replace('Z','+00:00')) if cd else None
+
+                m = Meeting(
+                    title=event.get('summary','Reunião sem título'),
+                    agenda=agenda,
+                    transcription='',
+                    meeting_date=dt,
+                    created_at=cdt,
+                    user_id=current_user.id,
+                    google_calendar_event_id=eid
+                )
+                db.session.add(m)
+        db.session.commit()
+
+        page_token = resp.get('nextPageToken')
+        if not page_token:
+            break
+
+    event_ids = [ev['id'] for ev in all_events]
+
+    # 3) Query no banco, só reuniões sincronizadas e já passadas
     if show_all:
         query = Meeting.query.filter_by(user_id=current_user.id)
     else:
@@ -302,27 +345,39 @@ def list_meetings():
             Meeting.google_calendar_event_id.in_(event_ids)
         )
     query = query.filter(Meeting.meeting_date <= datetime.utcnow())
+
+    # 4) Filtros de pesquisa
     if search:
         query = query.filter(Meeting.title.ilike(f'%{search}%'))
     if language:
         query = query.filter(Meeting.language == language)
+
+    # 5) Ordenação
     col_map = {
-        'title': Meeting.title,
+        'title':           Meeting.title,
         'alignment_score': Meeting.alignment_score,
-        'meeting_date': Meeting.meeting_date,
-        'created_at': Meeting.created_at
+        'meeting_date':    Meeting.meeting_date,
+        'created_at':      Meeting.created_at
     }
-    order_col = col_map.get(sort_by, Meeting.created_at)
-    query = query.order_by(order_col.asc() if sort_order == 'asc' else order_col.desc())
+    order_col = col_map.get(sort_by, Meeting.meeting_date)
+    if sort_order == 'asc':
+        query = query.order_by(order_col.asc())
+    else:
+        query = query.order_by(order_col.desc())
+
+    # 6) paginação: 10 itens por página
     pagination    = query.paginate(page=page, per_page=10, error_out=False)
     meetings_page = pagination.items
     total_pages   = pagination.pages
+
+    # 7) idiomas existentes para filtro
     langs = (db.session.query(Meeting.language)
              .filter(Meeting.user_id == current_user.id,
                      Meeting.language.isnot(None),
                      Meeting.language != '')
              .distinct().all())
     languages = [l[0] for l in langs if l[0]]
+
     return render_template(
         'meetings.html',
         meetings=meetings_page,
@@ -335,6 +390,7 @@ def list_meetings():
         page=page,
         total_pages=total_pages
     )
+
 
 
 
@@ -497,26 +553,25 @@ def meeting_detail(meeting_id):
                 if ff_id:
                     meeting.fireflies_transcript_id = ff_id
                 else:
-                    flash('Transcript ID não encontrado para este título.', 'warning')
-                    return render_template(
-                        'results.html',
-                        results=meeting.results,
-                        meeting=meeting,
-                        audio_url=None,
-                        video_url=None,
-                        sentences=[]
-                    )
+                    flash('Não foi encontrada transcrição para essa reunião.', 'warning')
+                    # renderiza sem erro, sem urls e sem sentences
+                    return render_template('results.html',
+                                           results=meeting.results,
+                                           meeting=meeting,
+                                           audio_url=None,
+                                           video_url=None,
+                                           sentences=[],
+                                           transcript_json={"data":{"transcript":{"id":""}}})
             except Exception as e:
                 logger.warning(f"Erro ao buscar FF-ID para '{meeting.title}': {e}")
                 flash('Não foi possível buscar o ID da transcrição.', 'warning')
-                return render_template(
-                    'results.html',
-                    results=meeting.results,
-                    meeting=meeting,
-                    audio_url=None,
-                    video_url=None,
-                    sentences=[]
-                )
+                return render_template('results.html',
+                                       results=meeting.results,
+                                       meeting=meeting,
+                                       audio_url=None,
+                                       video_url=None,
+                                       sentences=[],
+                                       transcript_json={"data":{"transcript":{"id":""}}})
 
         # 1b) busca a transcrição completa e salva texto, áudio e vídeo
         try:
@@ -537,10 +592,8 @@ def meeting_detail(meeting_id):
     # 2) Se já tiver transcrição, mas falta análise, executa analyze_meeting e persiste resultados
     if meeting.transcription and meeting.transcription.strip() and not meeting.results_json:
         try:
-            # reusa a função de análise manual para processar agenda + transcription
             results = analyze_meeting(meeting.agenda, meeting.transcription)
             meeting.results = results
-            # opcionalmente atualiza o idioma detectado
             meeting.language = results.get('language', meeting.language)
             db.session.commit()
         except Exception as e:
@@ -548,10 +601,10 @@ def meeting_detail(meeting_id):
             flash('Não foi possível gerar análise automática.', 'warning')
 
     # 3) Prepara variáveis para renderizar
-    audio_url = meeting.audio_url
-    video_url = meeting.video_url
-    sentences = meeting.transcription.split("\n") if meeting.transcription else []
-    transcript_json = {"data": {"transcript": {"id": meeting.fireflies_transcript_id}}}
+    audio_url      = meeting.audio_url
+    video_url      = meeting.video_url
+    sentences      = meeting.transcription.split("\n") if meeting.transcription else []
+    transcript_json = {"data": {"transcript": {"id": meeting.fireflies_transcript_id or ""}}}
 
     return render_template(
         'results.html',
@@ -562,6 +615,7 @@ def meeting_detail(meeting_id):
         sentences=sentences,
         transcript_json=transcript_json
     )
+
 
 
 
