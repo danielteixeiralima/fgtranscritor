@@ -267,7 +267,7 @@ document.querySelectorAll('.meeting-detail-link').forEach(link => {
   link.addEventListener('click', async function(event) {
     event.preventDefault();
     const ffId = this.dataset.ffId;
-    console.log('Fireflies ID:', ffId);
+   
 
     const BODY = {
       operationName: "GetTranscript",
@@ -306,7 +306,7 @@ document.querySelectorAll('.meeting-detail-link').forEach(link => {
         body: JSON.stringify(BODY)
       });
       const responseJson = await resp.json();
-      console.log("Fireflies API response:", responseJson);
+      
     } catch (err) {
       console.error("Erro ao chamar Fireflies:", err);
     }
