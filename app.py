@@ -16,6 +16,12 @@ from templates_data import WEB_SUMMIT_AGENDA, CAKE_RECIPE_AGENDA, HOURLY_COST
 import requests
 from flask_migrate import Migrate
 import click
+from datetime import datetime
+import dateutil.parser
+from flask import Flask
+from markupsafe import Markup
+
+
 
 
 
@@ -40,6 +46,21 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "keepalives_count": 5
     }
 }
+
+@app.template_filter('datetime')
+def format_datetime(value, fmt='%d/%m/%Y %H:%M'):
+    """Converte ISO string em datetime formatado."""
+    # parseia strings '2025-05-28T15:00:00-03:00'
+    dt = dateutil.parser.isoparse(value)
+    return dt.strftime(fmt)
+
+@app.template_filter('nl2br')
+def nl2br_filter(s):
+    """Converte quebras de linha em <br> e marca como seguro para HTML."""
+    if s is None:
+        return ''
+    # Substitui '\n' por '<br>\n' e retorna como Markup para não escapar as tags
+    return Markup(s.replace('\n', '<br>\n'))
 
 # Initialize database
 db.init_app(app)
