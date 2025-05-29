@@ -564,53 +564,49 @@ def meeting_detail(meeting_id):
         flash('Você não tem permissão para acessar esta reunião!', 'danger')
         return redirect(url_for('dashboard'))
 
-    # 1) Se faltar FF-ID ou texto de transcrição, busca no Fireflies e persiste
-    needs_fetch = not (meeting.fireflies_transcript_id and meeting.transcription and meeting.transcription.strip())
-    if needs_fetch:
-        # 1a) garante o FF-ID
-        if not meeting.fireflies_transcript_id:
-            try:
-                ff_id = fetch_fireflies_id_by_title(meeting.title)
-                if ff_id:
-                    meeting.fireflies_transcript_id = ff_id
-                else:
-                    flash('Não foi encontrada transcrição para essa reunião.', 'warning')
-                    # renderiza sem erro, sem urls e sem sentences
-                    return render_template('results.html',
-                                           results=meeting.results,
-                                           meeting=meeting,
-                                           audio_url=None,
-                                           video_url=None,
-                                           sentences=[],
-                                           transcript_json={"data":{"transcript":{"id":""}}})
-            except Exception as e:
-                logger.warning(f"Erro ao buscar FF-ID para '{meeting.title}': {e}")
-                flash('Não foi possível buscar o ID da transcrição.', 'warning')
-                return render_template('results.html',
-                                       results=meeting.results,
-                                       meeting=meeting,
-                                       audio_url=None,
-                                       video_url=None,
-                                       sentences=[],
-                                       transcript_json={"data":{"transcript":{"id":""}}})
+    # 1) Sempre tentar buscar a transcrição mais atualizada no Fireflies
+    #    mas apenas para reuniões já ocorridas.
+    if meeting.fireflies_transcript_id \
+       and meeting.meeting_date \
+       and meeting.meeting_date <= datetime.utcnow():
 
-        # 1b) busca a transcrição completa e salva texto, áudio e vídeo
         try:
             transcript_json = fetch_fireflies_transcript(meeting.fireflies_transcript_id)
             tr = transcript_json.get("data", {}).get("transcript") or {}
         except Exception as e:
-            logger.error(f"Erro ao chamar fetch_fireflies_transcript: {e}")
-            flash(f"Erro ao obter transcrição externa: {e}", "warning")
+            logger.error(f"Erro ao buscar transcrição pelo ID {meeting.fireflies_transcript_id}: {e}")
             tr = {}
 
-        if tr:
-            sentences = [s.get("text", "") for s in tr.get("sentences", [])]
-            meeting.transcription = "\n".join(sentences)
+        # 2) Primeiro, tenta pegar as sentenças vindas do GraphQL
+        sentences = tr.get("sentences", [])
+        if sentences:
+            text = "\n".join(s.get("text","") for s in sentences)
+            meeting.transcription = text
             meeting.audio_url     = tr.get("audio_url")
             meeting.video_url     = tr.get("video_url")
             db.session.commit()
 
-    # 2) Se já tiver transcrição, mas falta análise, executa analyze_meeting e persiste resultados
+        # 3) Se não vier sentenças, mas houver um transcript_url, faz GET direto
+        elif tr.get("transcript_url"):
+            try:
+                resp = requests.get(tr["transcript_url"], timeout=10)
+                resp.raise_for_status()
+                text = resp.text
+                if text.strip():
+                    meeting.transcription = text
+                    # áudio e vídeo não vêm aqui; mantêm o que já existia ou vazio
+                    db.session.commit()
+                else:
+                    flash("Transcrição vazia no transcript_url.", "warning")
+            except Exception as e:
+                logger.error(f"Erro ao baixar transcript_url: {e}")
+                flash("Não foi possível baixar a transcrição completa.", "warning")
+
+        # 4) Nem sentenças nem transcript_url? avisa e mantém o que já tinha
+        else:
+            flash("Transcrição não encontrada para este ID de reunião.", "warning")
+
+    # 5) Se temos texto (antigo ou novo) mas ainda não analisamos, chama o GPT
     if meeting.transcription and meeting.transcription.strip() and not meeting.results_json:
         try:
             results = analyze_meeting(meeting.agenda, meeting.transcription)
@@ -621,10 +617,10 @@ def meeting_detail(meeting_id):
             logger.error(f"Erro ao analisar reunião {meeting.id}: {e}")
             flash('Não foi possível gerar análise automática.', 'warning')
 
-    # 3) Prepara variáveis para renderizar
-    audio_url      = meeting.audio_url
-    video_url      = meeting.video_url
-    sentences      = meeting.transcription.split("\n") if meeting.transcription else []
+    # 6) Prepara tudo pro template
+    audio_url       = meeting.audio_url
+    video_url       = meeting.video_url
+    sentences       = (meeting.transcription or "").split("\n")
     transcript_json = {"data": {"transcript": {"id": meeting.fireflies_transcript_id or ""}}}
 
     return render_template(
@@ -636,10 +632,6 @@ def meeting_detail(meeting_id):
         sentences=sentences,
         transcript_json=transcript_json
     )
-
-
-
-
 
 
 

@@ -457,38 +457,43 @@
     <!-- Aba de Transcrição -->
     <div class="tab-pane fade" id="transcription" role="tabpanel" aria-labelledby="transcription-tab">
         <div class="row">
-            <div class="col-md-12">
-                <div class="card shadow-sm border-info">
-                    <div class="card-header bg-dark text-info">
-                        <h3 class="card-title mb-0">
-                            <i data-feather="file-text"></i> Transcrição Completa
-                        </h3>
-                    </div>
-                    <div class="card-body">
-
-                        <!-- Player de Áudio -->
-                        <audio id="transcription-audio" controls class="w-100 mb-3">
-                            <source src="" type="audio/mpeg">
-                            Seu navegador não suporta o elemento <code>audio</code>.
-                        </audio>
-
-                        <!-- Player de Vídeo -->
-                        <video id="transcription-video" controls class="w-100 mb-3">
-                            <source src="" type="video/mp4">
-                            Seu navegador não suporta o elemento <code>video</code>.
-                        </video>
-
-                        <!-- Container que será preenchido via JS -->
-                        <div id="transcription-text" class="transcription-content bg-dark p-3 rounded"
-                             style="max-height:400px; overflow-y:auto;">
-                            <!-- será preenchido dinamicamente -->
-                        </div>
-
-                    </div>
+          <div class="col-md-12">
+            <div class="card shadow-sm border-info">
+              <div class="card-header bg-dark text-info">
+                <h3 class="card-title mb-0">
+                  <i data-feather="file-text"></i> Transcrição Completa
+                </h3>
+              </div>
+              <div class="card-body">
+      
+                <!-- Player de Áudio -->
+                <audio id="transcription-audio" controls class="w-100 mb-3">
+                  <source src="" type="audio/mpeg">
+                </audio>
+      
+                <!-- Player de Vídeo -->
+                <video id="transcription-video" controls class="w-100 mb-3">
+                  <source src="" type="video/mp4">
+                </video>
+      
+                <!-- Container que será preenchido via JS ou com o fallback -->
+                <div id="transcription-text" class="transcription-content bg-dark p-3 rounded"
+                     style="max-height:400px; overflow-y:auto;">
+                  {% if not transcript_json.data.transcript.id %}
+                    {# Sem FF-ID: mostra o que já temos salvo #}
+                    {% for line in sentences %}
+                      <div class="mb-2 text-light"><pre class="mb-0">{{ line }}</pre></div>
+                    {% else %}
+                      <p class="text-muted">Nada para exibir.</p>
+                    {% endfor %}
+                  {% endif %}
                 </div>
+      
+              </div>
             </div>
+          </div>
         </div>
-    </div>
+      </div>
 </div>
 {% endblock %}
 {% block scripts %}
