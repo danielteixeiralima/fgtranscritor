@@ -33,14 +33,8 @@ def is_production():
 
 # Definir o URI de redirecionamento correto baseado no ambiente
 def get_redirect_uri():
-    """Get the appropriate redirect URI based on environment"""
-    if is_production():
-        # Em produção, usar o domínio de produção
-        return "https://transcritor.replit.app/settings/google_callback"
-    else:
-        # Em desenvolvimento, usar o domínio de desenvolvimento
-        dev_domain = os.environ.get('REPLIT_DEV_DOMAIN')
-        return f"https://{dev_domain}/settings/google_callback"
+    return os.environ["REDIRECT_URI"]
+
 
 # Obter o URI de redirecionamento
 REDIRECT_URI = get_redirect_uri()

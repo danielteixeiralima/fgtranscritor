@@ -56,6 +56,13 @@
                                 <i data-feather="play-circle" class="me-1" style="width: 16px; height: 16px;"></i> Demo Web Summit
                             </a>
                         </li>
+                        {% if current_user.is_admin %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('list_users') }}">
+                                <i data-feather="users" class="me-1" style="width:16px; height:16px;"></i> Usuários
+                            </a>
+                        </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('settings') }}">
                                 <i data-feather="settings" class="me-1" style="width: 16px; height: 16px;"></i> Configurações

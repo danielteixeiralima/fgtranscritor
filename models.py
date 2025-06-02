@@ -14,9 +14,12 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # **Novo campo de admin**
+    admin = db.Column(db.Boolean, default=False, nullable=False)
+
     meetings = db.relationship('Meeting', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     
-    # Google Calendar Integration
     google_credentials = db.Column(db.Text, nullable=True)
     google_calendar_enabled = db.Column(db.Boolean, default=False)
     
@@ -26,8 +29,12 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
     
+    @property
+    def is_admin(self):
+        """Permite usar current_user.is_admin"""
+        return self.admin
+
     def set_google_credentials(self, credentials_dict):
-        """Store Google credentials as JSON string"""
         if credentials_dict:
             self.google_credentials = json.dumps(credentials_dict)
             self.google_calendar_enabled = True
@@ -36,7 +43,6 @@ class User(UserMixin, db.Model):
             self.google_calendar_enabled = False
     
     def get_google_credentials(self):
-        """Retrieve Google credentials as dictionary"""
         if self.google_credentials:
             return json.loads(self.google_credentials)
         return None

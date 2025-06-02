@@ -64,11 +64,7 @@ def nl2br_filter(s):
     # Substitui '\n' por '<br>\n' e retorna como Markup para não escapar as tags
     return Markup(s.replace('\n', '<br>\n'))
 
-@app.template_filter('datetime')
-def format_datetime(value, fmt='%d/%m/%Y %H:%M'):
-    """Converte ISO string em datetime formatado (UTC ou c/ tzinfo)."""
-    dt = dateutil.parser.isoparse(value)
-    return dt.strftime(fmt)
+
 
 @app.template_filter('to_brt')
 def to_brt(value):
@@ -102,6 +98,10 @@ logging.basicConfig(level=logging.DEBUG)
 app.logger.setLevel(logging.DEBUG)
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 40ea438b320548f94d389aeac827fa32a4a7ef05
 
 @login_manager.user_loader
 def load_user(user_id):
