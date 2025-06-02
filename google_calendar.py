@@ -37,7 +37,20 @@ def get_redirect_uri():
 
 
 # Obter o URI de redirecionamento
+# Obter o URI de redirecionamento apenas do .env
 REDIRECT_URI = get_redirect_uri()
+
+# REDIRECT_URI = os.environ["REDIRECT_URI"]
+# # Definir o URI de redirecionamento correto baseado no ambiente
+# def get_redirect_uri():
+#     """Get the appropriate redirect URI based on environment"""
+#     if is_production():
+#         # Em produção, usar o domínio de produção
+#         return "https://34.67.100.58/settings/google_callback"
+#     else:
+#         # Em desenvolvimento, usar o domínio de desenvolvimento
+#         dev_domain = os.environ.get('REPLIT_DEV_DOMAIN')
+#         return f"https://{dev_domain}/settings/google_callback"
 
 
 

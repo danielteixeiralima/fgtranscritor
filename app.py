@@ -98,10 +98,6 @@ logging.basicConfig(level=logging.DEBUG)
 app.logger.setLevel(logging.DEBUG)
 
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 40ea438b320548f94d389aeac827fa32a4a7ef05
 
 @login_manager.user_loader
 def load_user(user_id):
