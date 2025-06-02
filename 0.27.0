@@ -1,0 +1,33 @@
+Requirement already satisfied: openai in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (0.28.0)
+Collecting openai
+  Downloading openai-1.82.0-py3-none-any.whl.metadata (25 kB)
+Requirement already satisfied: anyio<5,>=3.5.0 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from openai) (4.6.0)
+Requirement already satisfied: distro<2,>=1.7.0 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from openai) (1.9.0)
+Requirement already satisfied: httpx<1,>=0.23.0 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from openai) (0.27.2)
+Requirement already satisfied: jiter<1,>=0.4.0 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from openai) (0.5.0)
+Requirement already satisfied: pydantic<3,>=1.9.0 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from openai) (2.9.2)
+Requirement already satisfied: sniffio in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from openai) (1.3.1)
+Requirement already satisfied: tqdm>4 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from openai) (4.66.5)
+Collecting typing-extensions<5,>=4.11 (from openai)
+  Downloading typing_extensions-4.13.2-py3-none-any.whl.metadata (3.0 kB)
+Requirement already satisfied: idna>=2.8 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from anyio<5,>=3.5.0->openai) (3.10)
+Requirement already satisfied: exceptiongroup>=1.0.2 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from anyio<5,>=3.5.0->openai) (1.2.2)
+Requirement already satisfied: certifi in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from httpx<1,>=0.23.0->openai) (2024.8.30)
+Requirement already satisfied: httpcore==1.* in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from httpx<1,>=0.23.0->openai) (1.0.5)
+Requirement already satisfied: h11<0.15,>=0.13 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from httpcore==1.*->httpx<1,>=0.23.0->openai) (0.14.0)
+Requirement already satisfied: annotated-types>=0.6.0 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from pydantic<3,>=1.9.0->openai) (0.7.0)
+Requirement already satisfied: pydantic-core==2.23.4 in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from pydantic<3,>=1.9.0->openai) (2.23.4)
+Requirement already satisfied: colorama in c:\users\daniell\appdata\local\programs\python\python310\lib\site-packages (from tqdm>4->openai) (0.4.6)
+Downloading openai-1.82.0-py3-none-any.whl (720 kB)
+   ---------------------------------------- 720.4/720.4 kB 4.9 MB/s eta 0:00:00
+Using cached typing_extensions-4.13.2-py3-none-any.whl (45 kB)
+Installing collected packages: typing-extensions, openai
+  Attempting uninstall: typing-extensions
+    Found existing installation: typing_extensions 4.9.0
+    Uninstalling typing_extensions-4.9.0:
+      Successfully uninstalled typing_extensions-4.9.0
+  Attempting uninstall: openai
+    Found existing installation: openai 0.28.0
+    Uninstalling openai-0.28.0:
+      Successfully uninstalled openai-0.28.0
+Successfully installed openai-1.82.0 typing-extensions-4.13.2

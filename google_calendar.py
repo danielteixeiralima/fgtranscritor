@@ -43,8 +43,8 @@ def get_redirect_uri():
         return f"https://{dev_domain}/settings/google_callback"
 
 # Obter o URI de redirecionamento
-# Obter o URI de redirecionamento apenas do .env
-REDIRECT_URI = os.environ["REDIRECT_URI"]
+REDIRECT_URI = get_redirect_uri()
+
 
 
 

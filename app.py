@@ -15,6 +15,15 @@ from models import db, User, Meeting
 from templates_data import WEB_SUMMIT_AGENDA, CAKE_RECIPE_AGENDA, HOURLY_COST
 import requests
 from flask_migrate import Migrate
+import click
+from datetime import datetime
+import dateutil.parser
+from flask import Flask
+from markupsafe import Markup
+import pytz
+
+
+
 
 
 
@@ -40,6 +49,45 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     }
 }
 
+@app.template_filter('datetime')
+def format_datetime(value, fmt='%d/%m/%Y %H:%M'):
+    """Converte ISO string em datetime formatado."""
+    # parseia strings '2025-05-28T15:00:00-03:00'
+    dt = dateutil.parser.isoparse(value)
+    return dt.strftime(fmt)
+
+@app.template_filter('nl2br')
+def nl2br_filter(s):
+    """Converte quebras de linha em <br> e marca como seguro para HTML."""
+    if s is None:
+        return ''
+    # Substitui '\n' por '<br>\n' e retorna como Markup para não escapar as tags
+    return Markup(s.replace('\n', '<br>\n'))
+
+@app.template_filter('datetime')
+def format_datetime(value, fmt='%d/%m/%Y %H:%M'):
+    """Converte ISO string em datetime formatado (UTC ou c/ tzinfo)."""
+    dt = dateutil.parser.isoparse(value)
+    return dt.strftime(fmt)
+
+@app.template_filter('to_brt')
+def to_brt(value):
+    """
+    Converte um datetime aware (ou naive) para fuso 'America/Sao_Paulo' (UTC–3),
+    retornando um novo datetime com tzinfo adequado.
+    """
+    if value is None:
+        return None
+
+    # Se vier como string, você pode tentar parsear, mas aqui esperamos um datetime
+    # Se o datetime estiver “naive”, assumimos UTC antes de converter:
+    if value.tzinfo is None:
+        # assume que value está em UTC se vier “naive”
+        value = value.replace(tzinfo=pytz.utc)
+
+    brt_tz = pytz.timezone('America/Sao_Paulo')
+    return value.astimezone(brt_tz)
+
 # Initialize database
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -48,10 +96,12 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
+app.debug = True
+# Envia logs DEBUG também para o stdout
+logging.basicConfig(level=logging.DEBUG)
+app.logger.setLevel(logging.DEBUG)
 
-# Register template filters
-from filters import filters_bp
-app.register_blueprint(filters_bp)
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -62,9 +112,19 @@ def load_user(user_id):
         return None
 
 # Create tables if they don't exist
-with app.app_context():
-    db.create_all()
-    logger.debug("Database tables created or confirmed")
+# with app.app_context():
+#     db.create_all()
+#     logger.debug("Database tables created or confirmed")
+#     if not User.query.filter_by(username='admin').first():
+#         admin = User(
+#             username='admin',
+#             email='admin@bizarte.com.br',  # ajuste se quiser outro email
+#             admin=True
+#         )
+#         admin.set_password('admin123')
+#         db.session.add(admin)
+#         db.session.commit()
+#         logger.info("Usuário admin criado: admin / admin123")
 
 @app.route('/')
 def index():
@@ -114,6 +174,16 @@ def register():
         return redirect(url_for('login'))
     
     return render_template('register.html')
+
+
+@app.route('/users')
+@login_required
+def list_users():
+    if not current_user.is_admin:
+        flash('Permissão negada.', 'danger')
+        return redirect(url_for('dashboard'))
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('users.html', users=users)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -244,10 +314,11 @@ def sync_calendar_events_to_meetings(service):
 def list_meetings():
     search      = request.args.get('search', '')
     language    = request.args.get('language', '')
-    sort_by     = request.args.get('sort_by', 'created_at')
+    sort_by     = request.args.get('sort_by', 'meeting_date')  # default agora é meeting_date
     sort_order  = request.args.get('sort_order', 'desc')
     show_all    = request.args.get('show_all', 'false').lower() == 'true'
     page        = int(request.args.get('page', 1))
+
     if not current_user.google_calendar_enabled:
         return render_template('meetings.html',
                                meetings=[],
@@ -259,22 +330,64 @@ def list_meetings():
                                show_all=show_all,
                                page=1,
                                total_pages=0)
-    try:
-        creds   = current_user.get_google_credentials()
-        service = build_service(creds)
-        sync_calendar_events_to_meetings(service)
-    except Exception as e:
-        logger.error(f"Error syncing calendar events: {e}")
+
+    # 1) credenciais
     creds   = current_user.get_google_credentials()
     service = build_service(creds)
-    resp    = service.events().list(
-                  calendarId='primary',
-                  singleEvents=True,
-                  orderBy='startTime',
-                  maxResults=2500
-              ).execute()
-    events    = resp.get('items', [])
-    event_ids = [ev['id'] for ev in events]
+
+    # 2) busca TODOS os eventos passados em lotes (paginação da API) e sincroniza
+    now_iso    = datetime.utcnow().isoformat() + 'Z'
+    all_events = []
+    page_token = None
+    while True:
+        resp = service.events().list(
+            calendarId='primary',
+            singleEvents=True,
+            orderBy='startTime',
+            timeMax=now_iso,
+            pageToken=page_token,
+            maxResults=2500
+        ).execute()
+        batch = resp.get('items', [])
+        all_events.extend(batch)
+
+        for event in batch:
+            eid = event.get('id')
+            exists = Meeting.query.filter_by(
+                user_id=current_user.id,
+                google_calendar_event_id=eid
+            ).first()
+            if not exists:
+                desc = event.get('description','') or ''
+                if '--- AGENDA ---' in desc:
+                    agenda = desc.split('--- AGENDA ---',1)[1].strip()
+                else:
+                    agenda = 'Pauta não definida'
+
+                sd = event.get('start',{}).get('dateTime')
+                dt = datetime.fromisoformat(sd.replace('Z','+00:00')) if sd else None
+                cd = event.get('created')
+                cdt = datetime.fromisoformat(cd.replace('Z','+00:00')) if cd else None
+
+                m = Meeting(
+                    title=event.get('summary','Reunião sem título'),
+                    agenda=agenda,
+                    transcription='',
+                    meeting_date=dt,
+                    created_at=cdt,
+                    user_id=current_user.id,
+                    google_calendar_event_id=eid
+                )
+                db.session.add(m)
+        db.session.commit()
+
+        page_token = resp.get('nextPageToken')
+        if not page_token:
+            break
+
+    event_ids = [ev['id'] for ev in all_events]
+
+    # 3) Query no banco, só reuniões sincronizadas e já passadas
     if show_all:
         query = Meeting.query.filter_by(user_id=current_user.id)
     else:
@@ -283,27 +396,39 @@ def list_meetings():
             Meeting.google_calendar_event_id.in_(event_ids)
         )
     query = query.filter(Meeting.meeting_date <= datetime.utcnow())
+
+    # 4) Filtros de pesquisa
     if search:
         query = query.filter(Meeting.title.ilike(f'%{search}%'))
     if language:
         query = query.filter(Meeting.language == language)
+
+    # 5) Ordenação
     col_map = {
-        'title': Meeting.title,
+        'title':           Meeting.title,
         'alignment_score': Meeting.alignment_score,
-        'meeting_date': Meeting.meeting_date,
-        'created_at': Meeting.created_at
+        'meeting_date':    Meeting.meeting_date,
+        'created_at':      Meeting.created_at
     }
-    order_col = col_map.get(sort_by, Meeting.created_at)
-    query = query.order_by(order_col.asc() if sort_order == 'asc' else order_col.desc())
+    order_col = col_map.get(sort_by, Meeting.meeting_date)
+    if sort_order == 'asc':
+        query = query.order_by(order_col.asc())
+    else:
+        query = query.order_by(order_col.desc())
+
+    # 6) paginação: 10 itens por página
     pagination    = query.paginate(page=page, per_page=10, error_out=False)
     meetings_page = pagination.items
     total_pages   = pagination.pages
+
+    # 7) idiomas existentes para filtro
     langs = (db.session.query(Meeting.language)
              .filter(Meeting.user_id == current_user.id,
                      Meeting.language.isnot(None),
                      Meeting.language != '')
              .distinct().all())
     languages = [l[0] for l in langs if l[0]]
+
     return render_template(
         'meetings.html',
         meetings=meetings_page,
@@ -316,6 +441,7 @@ def list_meetings():
         page=page,
         total_pages=total_pages
     )
+
 
 
 
@@ -462,77 +588,187 @@ def fetch_fireflies_id_by_title(title, limit=50):
 @app.route('/meetings/<int:meeting_id>')
 @login_required
 def meeting_detail(meeting_id):
-    """Mostra o detalhe de uma reunião, incluindo transcript do Fireflies e análise automática."""
+    """
+    Mostra o detalhe de uma reunião, incluindo transcript do Fireflies
+    (busca primeiro pelo título + data/hora) e análise automática.
+    """
     meeting = Meeting.query.get_or_404(meeting_id)
+
+    # 1) Log básico do ID interno e *possível* fireflies_transcript_id armazenado
+    app.logger.info(f"[meeting_detail] Reunião DB ID: {meeting.id}, "
+                    f"fireflies_transcript_id armazenado: {meeting.fireflies_transcript_id!r}")
+
+    # Verifica se o usuário tem permissão para ver esta reunião
     if meeting.user_id != current_user.id:
         flash('Você não tem permissão para acessar esta reunião!', 'danger')
         return redirect(url_for('dashboard'))
 
-    # 1) Se faltar FF-ID ou texto de transcrição, busca no Fireflies e persiste
-    needs_fetch = not (meeting.fireflies_transcript_id and meeting.transcription and meeting.transcription.strip())
-    if needs_fetch:
-        # 1a) garante o FF-ID
-        if not meeting.fireflies_transcript_id:
+    # 2) Prepara a estrutura mínima para o template não falhar caso não haja transcript
+    transcript_json = {"data": {"transcript": {}}}
+
+    # 3) Só tentamos buscar transcrição no Fireflies se já houver data/hora da reunião e se ela já passou
+    if meeting.meeting_date and meeting.meeting_date <= datetime.utcnow():
+        # -------------------------------
+        # 3.1) CONVERTE meeting_date PARA MILISSEGUNDOS UTC (para comparar com o campo `date` do Fireflies)
+        # -------------------------------
+        # Se meeting.meeting_date não tiver tzinfo, assumimos que é UTC
+        md = meeting.meeting_date
+        if md.tzinfo is None:
+            md = md.replace(tzinfo=pytz.utc)
+        # timestamp em segundos → *1000 para milissegundos
+        meeting_ts_ms = int(md.timestamp() * 1000)
+
+        app.logger.info(f"[meeting_detail] Meeting date (UTC) convertido para milissegundos: {meeting_ts_ms}")
+
+        # -------------------------------
+        # 3.2) PREPARA A QUERY GraphQL “ListTranscripts” PARA PEGAR TODOS OS TRANSCRIPTS
+        # -------------------------------
+        graphql_query = """
+        query ListTranscripts {
+          transcripts {
+            id
+            title
+            date
+            transcript_url
+            audio_url
+            video_url
+          }
+        }
+        """
+
+        body = {
+            "operationName": "ListTranscripts",
+            "query": graphql_query,
+            # Não temos variáveis aqui, pois a query acima não usa $variáveis
+            "variables": {}
+        }
+
+        # Cabeçalhos obrigatórios:
+        fireflies_api_key = os.environ.get("FIREFLIES_API_TOKEN", None)
+        if not fireflies_api_key:
+            app.logger.error("[meeting_detail] Variável de ambiente FIRELIES_API_TOKEN não encontrada!")
+            flash("Erro interno: chave de API do Fireflies não configurada.", "danger")
+        else:
+            headers = {
+                "Content-Type": "application/json",
+                "x-apollo-operation-name": "ListTranscripts",
+                "Authorization": f"Bearer {fireflies_api_key}"
+            }
+
+            # 3.3) Loga no console o corpo EXATO que estamos enviando (para testar no Postman)
+            app.logger.info(f"[meeting_detail] Fireflies GraphQL BODY → {body}")
+
             try:
-                ff_id = fetch_fireflies_id_by_title(meeting.title)
-                if ff_id:
-                    meeting.fireflies_transcript_id = ff_id
-                else:
-                    flash('Transcript ID não encontrado para este título.', 'warning')
-                    return render_template(
-                        'results.html',
-                        results=meeting.results,
-                        meeting=meeting,
-                        audio_url=None,
-                        video_url=None,
-                        sentences=[]
-                    )
-            except Exception as e:
-                logger.warning(f"Erro ao buscar FF-ID para '{meeting.title}': {e}")
-                flash('Não foi possível buscar o ID da transcrição.', 'warning')
-                return render_template(
-                    'results.html',
-                    results=meeting.results,
-                    meeting=meeting,
-                    audio_url=None,
-                    video_url=None,
-                    sentences=[]
+                resp = requests.post(
+                    "https://api.fireflies.ai/graphql",
+                    headers=headers,
+                    json=body,
+                    timeout=10
                 )
+                resp.raise_for_status()
+                response_json = resp.json()
+                # 3.4) Loga a resposta completa da API (para você copiar e colar no Postman)
+                app.logger.info(f"[meeting_detail] Fireflies GraphQL RESPONSE → {response_json!r}")
 
-        # 1b) busca a transcrição completa e salva texto, áudio e vídeo
-        try:
-            transcript_json = fetch_fireflies_transcript(meeting.fireflies_transcript_id)
-            tr = transcript_json.get("data", {}).get("transcript") or {}
-        except Exception as e:
-            logger.error(f"Erro ao chamar fetch_fireflies_transcript: {e}")
-            flash(f"Erro ao obter transcrição externa: {e}", "warning")
-            tr = {}
+            except Exception as e:
+                app.logger.error(f"[meeting_detail] Erro ao consultar Fireflies GraphQL: {e}")
+                response_json = {}
 
-        if tr:
-            sentences = [s.get("text", "") for s in tr.get("sentences", [])]
-            meeting.transcription = "\n".join(sentences)
+            # -------------------------------
+            # 3.5) TENTA ENCONTRAR A TRANSCRIÇÃO cujo título = meeting.title e date = meeting_ts_ms
+            # -------------------------------
+            transcripts_list = response_json.get("data", {}).get("transcripts", [])
+            chosen_id = None
+
+            # Percorre tudo e tenta achar a combinação exata
+            for entry in transcripts_list:
+                entry_id    = entry.get("id")
+                entry_title = entry.get("title", "")
+                entry_date  = entry.get("date")  # já deve vir como inteiro de milissegundos
+
+                # Log individual para checar cada entrada (opcional; pode gerar muito log se muitos transcripts)
+                app.logger.debug(f"[meeting_detail] Checando entry: id={entry_id}, title={entry_title!r}, date={entry_date}")
+
+                # Comparação exata de string (título) + data exata em ms
+                if entry_title == meeting.title and entry_date == meeting_ts_ms:
+                    chosen_id = entry_id
+                    break
+
+            if chosen_id:
+                app.logger.info(f"[meeting_detail] Encontrou transcript_id correspondente: {chosen_id!r}")
+
+                # 3.6) Se estiver vazio ou mudou, atualiza no banco
+                if meeting.fireflies_transcript_id != chosen_id:
+                    meeting.fireflies_transcript_id = chosen_id
+                    db.session.commit()
+                    app.logger.info(f"[meeting_detail] Salvo novo fireflies_transcript_id no DB: {chosen_id!r}")
+
+                # 3.7) BUSCA AGORA O CONTEÚDO COMPLETO DO TRANSCRITO (como antes)
+                try:
+                    transcript_json = fetch_fireflies_transcript(chosen_id)
+                    app.logger.info(f"[meeting_detail] JSON retornado via fetch_fireflies_transcript: {transcript_json!r}")
+                except Exception as e:
+                    app.logger.error(f"[meeting_detail] Erro em fetch_fireflies_transcript para ID {chosen_id}: {e}")
+
+            else:
+                app.logger.warning(f"[meeting_detail] Não encontrou transcript com título={meeting.title!r} "
+                                   f"e date(ms)={meeting_ts_ms}. transcript_json será vazio.")
+                # transcript_json fica como {"data":{"transcript":{}}}
+
+        # 3.8) Se, após tudo, ainda houver algo no transcript_json, extrai `tr` e preenche meeting.transcription
+        tr = transcript_json.get("data", {}).get("transcript") or {}
+        app.logger.info(f"[meeting_detail] Nó 'transcript' extraído (pós-fetch): {tr!r}")
+
+        # 3.9) Se vier sentenças via GraphQL
+        sentences_data = tr.get("sentences", [])
+        if sentences_data:
+            text = "\n".join(s.get("text", "") for s in sentences_data)
+            meeting.transcription = text
             meeting.audio_url     = tr.get("audio_url")
             meeting.video_url     = tr.get("video_url")
             db.session.commit()
+            app.logger.info(f"[meeting_detail] Salvou transcription + audio_url/video_url no DB.")
 
-    # 2) Se já tiver transcrição, mas falta análise, executa analyze_meeting e persiste resultados
+        # 3.10) Se não vier `sentences`, mas tiver `transcript_url`, baixa diretamente como antes
+        elif tr.get("transcript_url"):
+            try:
+                resp2 = requests.get(tr["transcript_url"], timeout=10)
+                resp2.raise_for_status()
+                text2 = resp2.text
+                if text2.strip():
+                    meeting.transcription = text2
+                    db.session.commit()
+                    app.logger.info(f"[meeting_detail] Salvou transcription via transcript_url no DB.")
+                else:
+                    flash("Transcrição vazia no transcript_url.", "warning")
+                    app.logger.warning("[meeting_detail] transcript_url retornou texto vazio.")
+            except Exception as e:
+                app.logger.error(f"[meeting_detail] Erro ao baixar transcript_url: {e}")
+                flash("Não foi possível baixar a transcrição completa.", "warning")
+
+        # 3.11) Se nada foi encontrado
+        else:
+            flash("Transcrição não encontrada para este ID de reunião.", "warning")
+            app.logger.warning("[meeting_detail] Nem sentences nem transcript_url presentes em tr.")
+    else:
+        app.logger.info("[meeting_detail] Não buscou transcrição porque reunião ainda não passou ou não tem meeting_date.")
+
+    # 4) Análise automática se ainda não analisada
     if meeting.transcription and meeting.transcription.strip() and not meeting.results_json:
         try:
-            # reusa a função de análise manual para processar agenda + transcription
             results = analyze_meeting(meeting.agenda, meeting.transcription)
-            meeting.results = results
-            # opcionalmente atualiza o idioma detectado
+            meeting.results  = results
             meeting.language = results.get('language', meeting.language)
             db.session.commit()
+            app.logger.info(f"[meeting_detail] Análise automática salva no DB (results_json).")
         except Exception as e:
-            logger.error(f"Erro ao analisar reunião {meeting.id}: {e}")
+            app.logger.error(f"[meeting_detail] Erro ao analisar reunião {meeting.id}: {e}")
             flash('Não foi possível gerar análise automática.', 'warning')
 
-    # 3) Prepara variáveis para renderizar
+    # 5) Prepara tudo para o template
     audio_url = meeting.audio_url
     video_url = meeting.video_url
-    sentences = meeting.transcription.split("\n") if meeting.transcription else []
-    transcript_json = {"data": {"transcript": {"id": meeting.fireflies_transcript_id}}}
+    sentences = (meeting.transcription or "").split("\n")
 
     return render_template(
         'results.html',
@@ -543,7 +779,6 @@ def meeting_detail(meeting_id):
         sentences=sentences,
         transcript_json=transcript_json
     )
-
 
 
 
@@ -1443,4 +1678,3 @@ def process_calendar_analysis(meeting_id):
         logger.error(f"Error during calendar meeting analysis: {str(e)}")
         flash(f'Ocorreu um erro durante a análise: {str(e)}', 'danger')
         return redirect(url_for('edit_calendar_analysis', meeting_id=meeting_id))
-

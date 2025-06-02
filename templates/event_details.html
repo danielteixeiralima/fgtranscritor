@@ -47,16 +47,16 @@
                                     <p class="card-text">
                                         <strong>Início:</strong>
                                         {% if event.start.get('dateTime') %}
-                                            {{ event.start.dateTime|datetime }}
+                                            {{ event.start.get('dateTime') | datetime }}
                                         {% else %}
-                                            {{ event.start.date }}
+                                            {{ event.start.get('date') }}
                                         {% endif %}
                                         <br>
                                         <strong>Término:</strong>
                                         {% if event.end.get('dateTime') %}
-                                            {{ event.end.dateTime|datetime }}
+                                            {{ event.end.get('dateTime') | datetime }}
                                         {% else %}
-                                            {{ event.end.date }}
+                                            {{ event.end.get('date') }}
                                         {% endif %}
                                     </p>
                                 </div>
@@ -105,7 +105,7 @@
                                     <i data-feather="file-text" class="me-2 text-primary"></i> Descrição
                                 </h5>
                                 <p class="card-text">
-                                    {{ event.description|nl2br }}
+                                    {{ event.description | nl2br }}
                                 </p>
                             </div>
                         </div>
