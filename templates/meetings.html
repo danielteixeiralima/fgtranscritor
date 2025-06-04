@@ -127,11 +127,13 @@
                         </td>
                         <td>
                             {% if meeting.meeting_date %}
-                                {{ meeting.meeting_date.strftime('%d/%m/%Y') }}
+                                {{ (meeting.meeting_date|to_brt).strftime('%d/%m/%Y %H:%M') }}
                             {% else %}
                                 <span class="text-muted">Não especificada</span>
                             {% endif %}
                         </td>
+
+
                         <td>{{ meeting.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
                         <td>
                             <span class="badge bg-info text-dark">

@@ -20,6 +20,8 @@ from datetime import datetime
 import dateutil.parser
 from flask import Flask
 from markupsafe import Markup
+import pytz
+
 
 
 
@@ -62,6 +64,26 @@ def nl2br_filter(s):
     # Substitui '\n' por '<br>\n' e retorna como Markup para não escapar as tags
     return Markup(s.replace('\n', '<br>\n'))
 
+
+
+@app.template_filter('to_brt')
+def to_brt(value):
+    """
+    Converte um datetime aware (ou naive) para fuso 'America/Sao_Paulo' (UTC–3),
+    retornando um novo datetime com tzinfo adequado.
+    """
+    if value is None:
+        return None
+
+    # Se vier como string, você pode tentar parsear, mas aqui esperamos um datetime
+    # Se o datetime estiver “naive”, assumimos UTC antes de converter:
+    if value.tzinfo is None:
+        # assume que value está em UTC se vier “naive”
+        value = value.replace(tzinfo=pytz.utc)
+
+    brt_tz = pytz.timezone('America/Sao_Paulo')
+    return value.astimezone(brt_tz)
+
 # Initialize database
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -70,6 +92,10 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
+app.debug = True
+# Envia logs DEBUG também para o stdout
+logging.basicConfig(level=logging.DEBUG)
+app.logger.setLevel(logging.DEBUG)
 
 
 
@@ -557,72 +583,187 @@ def fetch_fireflies_id_by_title(title, limit=50):
 @app.route('/meetings/<int:meeting_id>')
 @login_required
 def meeting_detail(meeting_id):
-    """Mostra o detalhe de uma reunião, sempre puxando transcrição atualizada do Fireflies."""
+    """
+    Mostra o detalhe de uma reunião, incluindo transcript do Fireflies
+    (busca primeiro pelo título + data/hora) e análise automática.
+    """
     meeting = Meeting.query.get_or_404(meeting_id)
 
+    # 1) Log básico do ID interno e *possível* fireflies_transcript_id armazenado
+    app.logger.info(f"[meeting_detail] Reunião DB ID: {meeting.id}, "
+                    f"fireflies_transcript_id armazenado: {meeting.fireflies_transcript_id!r}")
+
+    # Verifica se o usuário tem permissão para ver esta reunião
     if meeting.user_id != current_user.id:
         flash('Você não tem permissão para acessar esta reunião!', 'danger')
         return redirect(url_for('dashboard'))
 
-    # --- 1) Sempre buscar a transcrição mais atualizada, se tivermos FF-ID e reunião passada ---
-    if meeting.fireflies_transcript_id and meeting.meeting_date and meeting.meeting_date <= datetime.utcnow():
-        try:
-            transcript_json = fetch_fireflies_transcript(meeting.fireflies_transcript_id)
-            # DEBUG completo
-            logger.debug("🔍 Fireflies retornou:\n" + json.dumps(transcript_json, indent=2, ensure_ascii=False))
-            tr = transcript_json.get("data", {}).get("transcript") or {}
-        except Exception as e:
-            logger.error(f"Erro ao chamar fetch_fireflies_transcript({meeting.fireflies_transcript_id}): {e}")
-            tr = {}
+    # 2) Prepara a estrutura mínima para o template não falhar caso não haja transcript
+    transcript_json = {"data": {"transcript": {}}}
 
-        # 1a) Se GraphQL trouxe sentenças, atualiza
-        sentences = tr.get("sentences", [])
-        if sentences:
-            new_text = "\n".join(s.get("text", "") for s in sentences)
-            meeting.transcription = new_text
+    # 3) Só tentamos buscar transcrição no Fireflies se já houver data/hora da reunião e se ela já passou
+    if meeting.meeting_date and meeting.meeting_date <= datetime.utcnow():
+        # -------------------------------
+        # 3.1) CONVERTE meeting_date PARA MILISSEGUNDOS UTC (para comparar com o campo `date` do Fireflies)
+        # -------------------------------
+        # Se meeting.meeting_date não tiver tzinfo, assumimos que é UTC
+        md = meeting.meeting_date
+        if md.tzinfo is None:
+            md = md.replace(tzinfo=pytz.utc)
+        # timestamp em segundos → *1000 para milissegundos
+        meeting_ts_ms = int(md.timestamp() * 1000)
+
+        app.logger.info(f"[meeting_detail] Meeting date (UTC) convertido para milissegundos: {meeting_ts_ms}")
+
+        # -------------------------------
+        # 3.2) PREPARA A QUERY GraphQL “ListTranscripts” PARA PEGAR TODOS OS TRANSCRIPTS
+        # -------------------------------
+        graphql_query = """
+        query ListTranscripts {
+          transcripts {
+            id
+            title
+            date
+            transcript_url
+            audio_url
+            video_url
+          }
+        }
+        """
+
+        body = {
+            "operationName": "ListTranscripts",
+            "query": graphql_query,
+            # Não temos variáveis aqui, pois a query acima não usa $variáveis
+            "variables": {}
+        }
+
+        # Cabeçalhos obrigatórios:
+        fireflies_api_key = os.environ.get("FIREFLIES_API_TOKEN", None)
+        if not fireflies_api_key:
+            app.logger.error("[meeting_detail] Variável de ambiente FIRELIES_API_TOKEN não encontrada!")
+            flash("Erro interno: chave de API do Fireflies não configurada.", "danger")
+        else:
+            headers = {
+                "Content-Type": "application/json",
+                "x-apollo-operation-name": "ListTranscripts",
+                "Authorization": f"Bearer {fireflies_api_key}"
+            }
+
+            # 3.3) Loga no console o corpo EXATO que estamos enviando (para testar no Postman)
+            app.logger.info(f"[meeting_detail] Fireflies GraphQL BODY → {body}")
+
+            try:
+                resp = requests.post(
+                    "https://api.fireflies.ai/graphql",
+                    headers=headers,
+                    json=body,
+                    timeout=10
+                )
+                resp.raise_for_status()
+                response_json = resp.json()
+                # 3.4) Loga a resposta completa da API (para você copiar e colar no Postman)
+                app.logger.info(f"[meeting_detail] Fireflies GraphQL RESPONSE → {response_json!r}")
+
+            except Exception as e:
+                app.logger.error(f"[meeting_detail] Erro ao consultar Fireflies GraphQL: {e}")
+                response_json = {}
+
+            # -------------------------------
+            # 3.5) TENTA ENCONTRAR A TRANSCRIÇÃO cujo título = meeting.title e date = meeting_ts_ms
+            # -------------------------------
+            transcripts_list = response_json.get("data", {}).get("transcripts", [])
+            chosen_id = None
+
+            # Percorre tudo e tenta achar a combinação exata
+            for entry in transcripts_list:
+                entry_id    = entry.get("id")
+                entry_title = entry.get("title", "")
+                entry_date  = entry.get("date")  # já deve vir como inteiro de milissegundos
+
+                # Log individual para checar cada entrada (opcional; pode gerar muito log se muitos transcripts)
+                app.logger.debug(f"[meeting_detail] Checando entry: id={entry_id}, title={entry_title!r}, date={entry_date}")
+
+                # Comparação exata de string (título) + data exata em ms
+                if entry_title == meeting.title and entry_date == meeting_ts_ms:
+                    chosen_id = entry_id
+                    break
+
+            if chosen_id:
+                app.logger.info(f"[meeting_detail] Encontrou transcript_id correspondente: {chosen_id!r}")
+
+                # 3.6) Se estiver vazio ou mudou, atualiza no banco
+                if meeting.fireflies_transcript_id != chosen_id:
+                    meeting.fireflies_transcript_id = chosen_id
+                    db.session.commit()
+                    app.logger.info(f"[meeting_detail] Salvo novo fireflies_transcript_id no DB: {chosen_id!r}")
+
+                # 3.7) BUSCA AGORA O CONTEÚDO COMPLETO DO TRANSCRITO (como antes)
+                try:
+                    transcript_json = fetch_fireflies_transcript(chosen_id)
+                    app.logger.info(f"[meeting_detail] JSON retornado via fetch_fireflies_transcript: {transcript_json!r}")
+                except Exception as e:
+                    app.logger.error(f"[meeting_detail] Erro em fetch_fireflies_transcript para ID {chosen_id}: {e}")
+
+            else:
+                app.logger.warning(f"[meeting_detail] Não encontrou transcript com título={meeting.title!r} "
+                                   f"e date(ms)={meeting_ts_ms}. transcript_json será vazio.")
+                # transcript_json fica como {"data":{"transcript":{}}}
+
+        # 3.8) Se, após tudo, ainda houver algo no transcript_json, extrai `tr` e preenche meeting.transcription
+        tr = transcript_json.get("data", {}).get("transcript") or {}
+        app.logger.info(f"[meeting_detail] Nó 'transcript' extraído (pós-fetch): {tr!r}")
+
+        # 3.9) Se vier sentenças via GraphQL
+        sentences_data = tr.get("sentences", [])
+        if sentences_data:
+            text = "\n".join(s.get("text", "") for s in sentences_data)
+            meeting.transcription = text
             meeting.audio_url     = tr.get("audio_url")
             meeting.video_url     = tr.get("video_url")
             db.session.commit()
+            app.logger.info(f"[meeting_detail] Salvou transcription + audio_url/video_url no DB.")
 
-        # 1b) Se não vier sentenças, mas vier transcript_url, faz GET direta
+        # 3.10) Se não vier `sentences`, mas tiver `transcript_url`, baixa diretamente como antes
         elif tr.get("transcript_url"):
             try:
-                resp = requests.get(tr["transcript_url"], timeout=10)
-                resp.raise_for_status()
-                text = resp.text.strip()
-                if text:
-                    meeting.transcription = text
+                resp2 = requests.get(tr["transcript_url"], timeout=10)
+                resp2.raise_for_status()
+                text2 = resp2.text
+                if text2.strip():
+                    meeting.transcription = text2
                     db.session.commit()
+                    app.logger.info(f"[meeting_detail] Salvou transcription via transcript_url no DB.")
                 else:
-                    flash("⚠️ transcript_url retornou vazio.", "warning")
+                    flash("Transcrição vazia no transcript_url.", "warning")
+                    app.logger.warning("[meeting_detail] transcript_url retornou texto vazio.")
             except Exception as e:
-                logger.error(f"Erro ao baixar transcript_url: {e}")
-                flash("⚠️ Falha ao baixar a transcrição completa.", "warning")
+                app.logger.error(f"[meeting_detail] Erro ao baixar transcript_url: {e}")
+                flash("Não foi possível baixar a transcrição completa.", "warning")
 
-        # 1c) Se nada disso, avisa
+        # 3.11) Se nada foi encontrado
         else:
-            flash(
-                "⚠️ Nenhuma transcrição disponível para este ID de reunião. "
-                "Verifique no Fireflies se a reunião realmente tem transcript gerado.",
-                "warning"
-            )
+            flash("Transcrição não encontrada para este ID de reunião.", "warning")
+            app.logger.warning("[meeting_detail] Nem sentences nem transcript_url presentes em tr.")
+    else:
+        app.logger.info("[meeting_detail] Não buscou transcrição porque reunião ainda não passou ou não tem meeting_date.")
 
-    # --- 2) Se já houver texto (seja novo ou antigo) e ainda não analisado, chama o GPT ---
+    # 4) Análise automática se ainda não analisada
     if meeting.transcription and meeting.transcription.strip() and not meeting.results_json:
         try:
             results = analyze_meeting(meeting.agenda, meeting.transcription)
-            meeting.results = results
+            meeting.results  = results
             meeting.language = results.get('language', meeting.language)
             db.session.commit()
+            app.logger.info(f"[meeting_detail] Análise automática salva no DB (results_json).")
         except Exception as e:
-            logger.error(f"Erro ao analisar reunião {meeting.id}: {e}")
+            app.logger.error(f"[meeting_detail] Erro ao analisar reunião {meeting.id}: {e}")
             flash('Não foi possível gerar análise automática.', 'warning')
 
-    # --- 3) Preparar variáveis para o template ---
-    audio_url       = meeting.audio_url
-    video_url       = meeting.video_url
-    sentences       = (meeting.transcription or "").split("\n")
-    transcript_json = {"data": {"transcript": {"id": meeting.fireflies_transcript_id or ""}}}
+    # 5) Prepara tudo para o template
+    audio_url = meeting.audio_url
+    video_url = meeting.video_url
+    sentences = (meeting.transcription or "").split("\n")
 
     return render_template(
         'results.html',
@@ -633,6 +774,9 @@ def meeting_detail(meeting_id):
         sentences=sentences,
         transcript_json=transcript_json
     )
+
+
+
 
 
 @app.route('/meetings/<int:meeting_id>/delete', methods=['POST'])
@@ -1534,4 +1678,3 @@ def process_calendar_analysis(meeting_id):
         logger.error(f"Error during calendar meeting analysis: {str(e)}")
         flash(f'Ocorreu um erro durante a análise: {str(e)}', 'danger')
         return redirect(url_for('edit_calendar_analysis', meeting_id=meeting_id))
-

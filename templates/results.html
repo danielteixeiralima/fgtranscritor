@@ -465,20 +465,20 @@
                 </h3>
               </div>
               <div class="card-body">
-      
+
                 <!-- Player de Áudio -->
                 <audio id="transcription-audio" controls class="w-100 mb-3">
-                  <source src="" type="audio/mpeg">
+                  <source id="audio-source" src="" type="audio/mpeg">
                 </audio>
-      
+
                 <!-- Player de Vídeo -->
                 <video id="transcription-video" controls class="w-100 mb-3">
-                  <source src="" type="video/mp4">
+                  <source id="video-source" src="" type="video/mp4">
                 </video>
-      
+
                 <!-- Container que será preenchido via JS ou com o fallback -->
                 <div id="transcription-text" class="transcription-content bg-dark p-3 rounded"
-                     style="max-height:400px; overflow-y:auto;">
+                     style="max-height:400px; overflow-y:auto; color: #eee; font-family: monospace;">
                   {% if not transcript_json.data.transcript.id %}
                     {# Sem FF-ID: mostra o que já temos salvo #}
                     {% for line in sentences %}
@@ -488,7 +488,6 @@
                     {% endfor %}
                   {% endif %}
                 </div>
-      
               </div>
             </div>
           </div>
@@ -500,6 +499,14 @@
   {{ super() }}
 
   <script>
+    // 1) Injeção do JSON do servidor
+    const transcriptData = {{ transcript_json | tojson }};
+    console.log("Transcript JSON from server:", transcriptData);
+
+    // 2) Log do texto transcrito bruto (meeting.transcription)
+    const rawTranscription = `{{ meeting.transcription | replace('\n', '\\n') }}`;
+    console.log("Raw transcription text:", rawTranscription);
+
     function formatTime(seconds) {
       const ms = Number(seconds) * 1000;
       const date = new Date(ms);
@@ -509,16 +516,42 @@
     }
 
     async function loadTranscript() {
-      // transcript_json definido no render; pode ser string vazia
-      const id = '{{ transcript_json.data.transcript.id }}';
-      if (!id) return;  // sem ID, não carrega nada
+      // 3) Pega o ID do Fireflies
+      const id = transcriptData.data.transcript.id;
+      console.log("Will fetch Fireflies transcript for ID:", id);
+      if (!id) {
+        console.warn("Nenhum ID de Fireflies disponível (ID está undefined ou null).");
+        // Se não houver ID, exibe o rawTranscription no container
+        const container = document.getElementById("transcription-text");
+        container.innerHTML = rawTranscription
+          .split("\\n")
+          .map(line => `<div class="mb-2 text-light"><pre class="mb-0">${line}</pre></div>`)
+          .join("");
+        return;
+      }
 
+      // 4) Monta URL e Headers
+      const url = "https://api.fireflies.ai/graphql";
+      const headers = {
+        "Content-Type": "application/json",
+        "x-apollo-operation-name": "GetTranscript",
+        "Authorization": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99"
+      };
+
+      // 5) Monta o corpo completo da query GraphQL
       const BODY = {
         operationName: "GetTranscript",
         query: `
           query GetTranscript($id:String!) {
             transcript(id:$id) {
-              sentences { index speaker_name text start_time end_time }
+              id
+              sentences {
+                index
+                speaker_name
+                text
+                start_time
+                end_time
+              }
               audio_url
               video_url
             }
@@ -526,50 +559,68 @@
         variables: { id }
       };
 
+      // 6) Log da requisição completa para copiar no Postman
+      console.log(">>> URL:", url);
+      console.log(">>> Headers:", JSON.stringify(headers, null, 2));
+      console.log(">>> Body completo:", JSON.stringify(BODY, null, 2));
+
       try {
-        const resp = await fetch("https://api.fireflies.ai/graphql", {
+        const resp = await fetch(url, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-apollo-operation-name": "GetTranscript",
-            "Authorization": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99"
-          },
+          headers: headers,
           body: JSON.stringify(BODY)
         });
         const json = await resp.json();
+        console.log("Transcript GraphQL response:", json);
+
         const tr = json?.data?.transcript;
-        if (!tr) return;
+        if (!tr) {
+          console.warn("Campo 'transcript' veio vazio no GraphQL response.");
+          return;
+        }
 
-        // Carrega áudio se disponível
+        // 7) POPULA o <audio> se tiver URL
         if (tr.audio_url) {
-          const audioSource = document.querySelector('#transcription-audio source');
+          const audioSource = document.getElementById("audio-source");
           audioSource.src = tr.audio_url;
-          document.getElementById('transcription-audio').load();
+          const audioPlayer = document.getElementById("transcription-audio");
+          audioPlayer.load();
         }
 
-        // Carrega vídeo se disponível
+        // 8) POPULA o <video> se tiver URL
         if (tr.video_url) {
-          const videoSource = document.querySelector('#transcription-video source');
+          const videoSource = document.getElementById("video-source");
           videoSource.src = tr.video_url;
-          document.getElementById('transcription-video').load();
+          const videoPlayer = document.getElementById("transcription-video");
+          videoPlayer.load();
         }
 
-        // Preenche texto se houver sentenças
+        // 9) Preenche o container de texto com cada sentença
+        const container = document.getElementById("transcription-text");
         if (Array.isArray(tr.sentences) && tr.sentences.length) {
-          const container = document.getElementById('transcription-text');
-          container.innerHTML = tr.sentences.map(s => `
-            <div class="mb-3">
-              <div class="fw-bold text-white">
-                ${s.speaker_name}
-                <span class="text-muted small ms-2">${formatTime(s.start_time)}</span>
-              </div>
-              <div class="text-light">${s.text}</div>
-            </div>
-          `).join('');
+          const htmlSentences = tr.sentences.map(s => {
+            const time = formatTime(s.start_time);
+            return `
+              <div class="mb-3">
+                <div class="fw-bold text-white">
+                  ${s.speaker_name} 
+                  <span class="text-muted small ms-2">${time}</span>
+                </div>
+                <div class="text-light">${s.text}</div>
+              </div>`;
+          }).join("");
+          container.innerHTML = htmlSentences;
+        } else {
+          container.innerHTML = "<p class='text-muted'>Nenhuma sentença encontrada.</p>";
         }
+
       } catch (err) {
         console.error("Falha ao carregar transcrição:", err);
-        // não propaga o erro para o usuário
+        const fallback = document.getElementById("transcription-text");
+        fallback.innerHTML = rawTranscription
+          .split("\\n")
+          .map(line => `<div class="mb-2 text-light"><pre class="mb-0">${line}</pre></div>`)
+          .join("");
       }
     }
 

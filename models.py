@@ -65,7 +65,6 @@ class Meeting(db.Model):
     results_json = db.Column(db.Text)  # Store the full analysis results as JSON
     audio_url = db.Column(db.String(5000), nullable=True)
     video_url = db.Column(db.String(5000), nullable=True)
-    fireflies_transcript_id = db.Column(db.String(255), nullable=True)
     
     # Google Calendar integration
     google_calendar_event_id = db.Column(db.String(255), nullable=True)  # ID do evento no Google Calendar
