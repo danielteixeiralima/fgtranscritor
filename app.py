@@ -554,59 +554,60 @@ def fetch_fireflies_id_by_title(title, limit=50):
     print(f"⚠️ Nenhuma transcrição com title='{title}' nos primeiros {limit}")
     return None
 
-
 @app.route('/meetings/<int:meeting_id>')
 @login_required
 def meeting_detail(meeting_id):
-    """Mostra o detalhe de uma reunião, incluindo transcript do Fireflies e análise automática."""
+    """Mostra o detalhe de uma reunião, sempre puxando transcrição atualizada do Fireflies."""
     meeting = Meeting.query.get_or_404(meeting_id)
+
     if meeting.user_id != current_user.id:
         flash('Você não tem permissão para acessar esta reunião!', 'danger')
         return redirect(url_for('dashboard'))
 
-    # 1) Sempre tentar buscar a transcrição mais atualizada no Fireflies
-    #    mas apenas para reuniões já ocorridas.
-    if meeting.fireflies_transcript_id \
-       and meeting.meeting_date \
-       and meeting.meeting_date <= datetime.utcnow():
-
+    # --- 1) Sempre buscar a transcrição mais atualizada, se tivermos FF-ID e reunião passada ---
+    if meeting.fireflies_transcript_id and meeting.meeting_date and meeting.meeting_date <= datetime.utcnow():
         try:
             transcript_json = fetch_fireflies_transcript(meeting.fireflies_transcript_id)
+            # DEBUG completo
+            logger.debug("🔍 Fireflies retornou:\n" + json.dumps(transcript_json, indent=2, ensure_ascii=False))
             tr = transcript_json.get("data", {}).get("transcript") or {}
         except Exception as e:
-            logger.error(f"Erro ao buscar transcrição pelo ID {meeting.fireflies_transcript_id}: {e}")
+            logger.error(f"Erro ao chamar fetch_fireflies_transcript({meeting.fireflies_transcript_id}): {e}")
             tr = {}
 
-        # 2) Primeiro, tenta pegar as sentenças vindas do GraphQL
+        # 1a) Se GraphQL trouxe sentenças, atualiza
         sentences = tr.get("sentences", [])
         if sentences:
-            text = "\n".join(s.get("text","") for s in sentences)
-            meeting.transcription = text
+            new_text = "\n".join(s.get("text", "") for s in sentences)
+            meeting.transcription = new_text
             meeting.audio_url     = tr.get("audio_url")
             meeting.video_url     = tr.get("video_url")
             db.session.commit()
 
-        # 3) Se não vier sentenças, mas houver um transcript_url, faz GET direto
+        # 1b) Se não vier sentenças, mas vier transcript_url, faz GET direta
         elif tr.get("transcript_url"):
             try:
                 resp = requests.get(tr["transcript_url"], timeout=10)
                 resp.raise_for_status()
-                text = resp.text
-                if text.strip():
+                text = resp.text.strip()
+                if text:
                     meeting.transcription = text
-                    # áudio e vídeo não vêm aqui; mantêm o que já existia ou vazio
                     db.session.commit()
                 else:
-                    flash("Transcrição vazia no transcript_url.", "warning")
+                    flash("⚠️ transcript_url retornou vazio.", "warning")
             except Exception as e:
                 logger.error(f"Erro ao baixar transcript_url: {e}")
-                flash("Não foi possível baixar a transcrição completa.", "warning")
+                flash("⚠️ Falha ao baixar a transcrição completa.", "warning")
 
-        # 4) Nem sentenças nem transcript_url? avisa e mantém o que já tinha
+        # 1c) Se nada disso, avisa
         else:
-            flash("Transcrição não encontrada para este ID de reunião.", "warning")
+            flash(
+                "⚠️ Nenhuma transcrição disponível para este ID de reunião. "
+                "Verifique no Fireflies se a reunião realmente tem transcript gerado.",
+                "warning"
+            )
 
-    # 5) Se temos texto (antigo ou novo) mas ainda não analisamos, chama o GPT
+    # --- 2) Se já houver texto (seja novo ou antigo) e ainda não analisado, chama o GPT ---
     if meeting.transcription and meeting.transcription.strip() and not meeting.results_json:
         try:
             results = analyze_meeting(meeting.agenda, meeting.transcription)
@@ -617,7 +618,7 @@ def meeting_detail(meeting_id):
             logger.error(f"Erro ao analisar reunião {meeting.id}: {e}")
             flash('Não foi possível gerar análise automática.', 'warning')
 
-    # 6) Prepara tudo pro template
+    # --- 3) Preparar variáveis para o template ---
     audio_url       = meeting.audio_url
     video_url       = meeting.video_url
     sentences       = (meeting.transcription or "").split("\n")
@@ -632,7 +633,6 @@ def meeting_detail(meeting_id):
         sentences=sentences,
         transcript_json=transcript_json
     )
-
 
 
 @app.route('/meetings/<int:meeting_id>/delete', methods=['POST'])
@@ -1358,9 +1358,9 @@ def edit_agenda():
         if not title or not agenda or not start_date or not start_time or not end_date or not end_time:
             flash('Todos os campos marcados com * são obrigatórios.', 'warning')
             return render_template('edit_agenda.html', 
-                               title=title or session['generated_title'],
-                               agenda=agenda or session['generated_agenda'],
-                               description=description)
+                                   title=title or session['generated_title'],
+                                   agenda=agenda or session['generated_agenda'],
+                                   description=description)
         
         try:
             # Converter data e hora para datetime
@@ -1371,14 +1371,18 @@ def edit_agenda():
             if end_datetime <= start_datetime:
                 flash('A hora de término deve ser posterior à hora de início.', 'warning')
                 return render_template('edit_agenda.html', 
-                                   title=title,
-                                   agenda=agenda,
-                                   description=description)
+                                       title=title,
+                                       agenda=agenda,
+                                       description=description)
             
             # Processar lista de participantes
             attendees_list = []
             if attendees:
                 attendees_list = [email.strip() for email in attendees.split(',') if email.strip()]
+            
+            # Garantir que hub@inovailab.com sempre seja chamado apenas uma vez
+            if "hub@inovailab.com" not in attendees_list:
+                attendees_list.append("hub@inovailab.com")
             
             # Obter as credenciais do Google
             credentials_data = current_user.get_google_credentials()
@@ -1408,9 +1412,9 @@ def edit_agenda():
             logger.error(f"Erro ao criar evento: {str(e)}")
             flash(f'Erro ao criar evento: {str(e)}', 'danger')
             return render_template('edit_agenda.html', 
-                               title=title,
-                               agenda=agenda,
-                               description=description)
+                                   title=title,
+                                   agenda=agenda,
+                                   description=description)
     
     # Obter a data atual formatada para o template com o fuso horário de São Paulo
     import pytz
@@ -1419,10 +1423,11 @@ def edit_agenda():
     
     # Exibir formulário com dados gerados
     return render_template('edit_agenda.html',
-                       title=session['generated_title'],
-                       agenda=session['generated_agenda'],
-                       description="",
-                       today_date=today_date)
+                           title=session['generated_title'],
+                           agenda=session['generated_agenda'],
+                           description="",
+                           today_date=today_date)
+
 
 @app.route('/calendar/event/<event_id>/analyze')
 @login_required
