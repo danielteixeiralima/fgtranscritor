@@ -685,7 +685,7 @@ def meeting_detail(meeting_id):
                 app.logger.debug(f"[meeting_detail] Checando entry: id={entry_id}, title={entry_title!r}, date={entry_date}")
 
                 # Comparação exata de string (título) + data exata em ms
-                if entry_title == meeting.title and entry_date == meeting_ts_ms:
+                if entry_title.strip() == meeting.title.strip() and entry_date == meeting_ts_ms:
                     chosen_id = entry_id
                     break
 
