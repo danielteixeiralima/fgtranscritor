@@ -701,6 +701,16 @@ def meeting_detail(meeting_id):
                 # 3.7) BUSCA AGORA O CONTEÚDO COMPLETO DO TRANSCRITO (como antes)
                 try:
                     transcript_json = fetch_fireflies_transcript(chosen_id)
+                    ff_summary = transcript_json \
+                        .get("data", {}) \
+                        .get("transcript", {}) \
+                        .get("summary", {}) \
+                        .get("overview")
+                    ff_bullets = transcript_json \
+                        .get("data", {}) \
+                        .get("transcript", {}) \
+                        .get("summary", {}) \
+                        .get("bullet_gist")
                     app.logger.info(f"[meeting_detail] JSON retornado via fetch_fireflies_transcript: {transcript_json!r}")
                 except Exception as e:
                     app.logger.error(f"[meeting_detail] Erro em fetch_fireflies_transcript para ID {chosen_id}: {e}")
@@ -772,8 +782,11 @@ def meeting_detail(meeting_id):
         audio_url=audio_url,
         video_url=video_url,
         sentences=sentences,
-        transcript_json=transcript_json
+        transcript_json=transcript_json,
+        fireflies_overview=ff_summary,
+        fireflies_bullets=ff_bullets
     )
+
 
 
 

@@ -141,14 +141,32 @@
                         <div class="row">
                             <div class="col-md-12">
                                 <h4 class="border-bottom pb-2 mb-3">Sumário Executivo</h4>
-                                <p class="lead">{{ results.meeting_summary }}</p>
+
+                                {# Se houver bullets vindos do Fireflies, renderiza-os como lista #}
+                                {% set raw_bullets = transcript_json.data.transcript.summary.overview | default('') %}
+                                {% set bullets = raw_bullets.split('\n') %}
+
+                                {% if bullets %}
+                                    <ul class="list-unstyled mb-3">
+                                        {# remove entradas vazias e o “- ” inicial #}
+                                        {% for line in bullets if line|trim %}
+                                            <li class="mb-2">• {{ line|trim|replace('- ', '', 1) }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="lead">{{ results.meeting_summary }}</p>
+                                {% endif %}
+
                                 {% if results.language %}
-                                <p class="text-muted mb-0">
-                                    <i data-feather="globe" class="me-1"></i> 
-                                    Idioma: <strong>{{ results.language | upper }}</strong>
-                                </p>
+                                    <p class="text-muted mb-0">
+                                        <i data-feather="globe" class="me-1"></i>
+                                        Idioma: <strong>{{ results.language | upper }}</strong>
+                                    </p>
                                 {% endif %}
                             </div>
+
+
+
                         </div>
                     </div>
                 </div>
