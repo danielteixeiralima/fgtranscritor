@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 
 {% block content %}
+
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
@@ -140,7 +141,7 @@
                         
                         <div class="row">
                             <div class="col-md-12">
-                                <h4 class="border-bottom pb-2 mb-3">Sumário Executivo</h4>
+                                <h4 class="border-bottom pb-2 mb-3">Overview</h4>
 
                                 {# Se houver bullets vindos do Fireflies, renderiza-os como lista #}
                                 {% set raw_bullets = transcript_json.data.transcript.summary.overview | default('') %}
@@ -164,8 +165,6 @@
                                     </p>
                                 {% endif %}
                             </div>
-
-
 
                         </div>
                     </div>
@@ -278,85 +277,136 @@
                 </div>
             </div>
             
-            <!-- Tópicos Adicionais -->
+            {# ----------------------------------------------------------------------------- #}
+            {# Insights da Reunião (mantido comentado)                                       #}
+            {# ----------------------------------------------------------------------------- #}
+            {#
             <div class="col-md-6 mb-4">
-                <div class="card shadow-sm h-100 border-info">
-                    <div class="card-header bg-dark text-info">
-                        <h3 class="card-title mb-0">
-                            <i data-feather="plus-square"></i> Tópicos Adicionais Discutidos
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        {% if results.additional_topics %}
-                            <ul class="list-group">
-                                {% for topic in results.additional_topics %}
-                                    <li class="list-group-item">
-                                        <i data-feather="plus" class="text-info me-2"></i>
-                                        {{ topic }}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <p class="text-muted text-center py-4">Nenhum tópico adicional foi discutido.</p>
-                        {% endif %}
-                    </div>
+            <div class="card shadow-sm h-100 border-warning">
+                <div class="card-header bg-dark text-warning">
+                <h3 class="card-title mb-0">
+                    <i data-feather="award"></i> Insights da Reunião
+                </h3>
+                </div>
+                <div class="card-body">
+                {% if results.insights %}
+                    <ul class="list-group">
+                    {% for insight in results.insights %}
+                        <li class="list-group-item">
+                        <i data-feather="message-circle" class="text-warning me-2"></i>
+                        {{ insight }}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted text-center py-4">Nenhum insight disponível.</p>
+                {% endif %}
                 </div>
             </div>
-            
-            <!-- Insights -->
+            </div>
+            #}
+
+            {# ----------------------------------------------------------------------------- #}
+            {# Tópicos Adicionais Discutidos (mantido comentado)                              #}
+            {# ----------------------------------------------------------------------------- #}
+            {#
             <div class="col-md-6 mb-4">
-                <div class="card shadow-sm h-100 border-warning">
-                    <div class="card-header bg-dark text-warning">
-                        <h3 class="card-title mb-0">
-                            <i data-feather="award"></i> Insights da Reunião
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        {% if results.insights %}
-                            <ul class="list-group">
-                                {% for insight in results.insights %}
-                                    <li class="list-group-item">
-                                        <i data-feather="message-circle" class="text-warning me-2"></i>
-                                        {{ insight }}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% else %}
-                            <p class="text-muted text-center py-4">Nenhum insight disponível.</p>
-                        {% endif %}
-                    </div>
+            <div class="card shadow-sm h-100 border-info">
+                <div class="card-header bg-dark text-info">
+                <h3 class="card-title mb-0">
+                    <i data-feather="plus-square"></i> Tópicos Adicionais Discutidos
+                </h3>
+                </div>
+                <div class="card-body">
+                {% if results.additional_topics %}
+                    <ul class="list-group">
+                    {% for topic in results.additional_topics %}
+                        <li class="list-group-item">
+                        <i data-feather="plus" class="text-info me-2"></i>
+                        {{ topic }}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted text-center py-4">Nenhum tópico adicional foi discutido.</p>
+                {% endif %}
                 </div>
             </div>
-            
-            <!-- Próximos Passos -->
+            </div>
+            #}
+
+           {# ----------------------------------------------------------------------------- #}
+            {# Menu de Notas formatado                                                       #}
+            {# ----------------------------------------------------------------------------- #}
             <div class="col-md-12 mb-4">
-                <div class="card shadow-sm border-secondary">
-                    <div class="card-header bg-dark text-secondary">
-                        <h3 class="card-title mb-0">
-                            <i data-feather="arrow-right-circle"></i> Próximos Passos Recomendados
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        {% if results.next_steps %}
-                            <div class="row">
-                                {% for step in results.next_steps %}
-                                    <div class="col-md-6 mb-2">
-                                        <div class="card card-body bg-dark">
-                                            <i data-feather="arrow-right" class="text-secondary me-2"></i>
-                                            {{ step }}
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <p class="text-muted text-center py-4">Nenhum próximo passo recomendado.</p>
-                        {% endif %}
-                    </div>
+            <div class="card shadow-sm border-info">
+                <div class="card-header bg-dark text-info">
+                <h3 class="card-title mb-0">
+                    <i data-feather="book-open"></i> Notas
+                </h3>
+                </div>
+                <div class="card-body">
+                {% if fireflies_notes %}
+                    {% for note in fireflies_notes %}
+                    {% set text = note|trim %}
+
+                    {# Se começar com qualquer emoji, é título #}
+                    {% if text.startswith(('👤','⚠️','💡','🛠️','📈','📅','🚀')) %}
+                        {# Retira o "(hh:mm - hh:mm)" #}
+                        {% set raw_title = text.split(' (', 1)[0] %}
+                        {# Remove quaisquer ** e põe em MAIÚSCULAS #}
+                        {% set clean_title = raw_title.replace('**','') | upper %}
+
+                        <p class="fw-bold fs-5 mt-4 mb-2">{{ clean_title }}</p>
+                    {% else %}
+                        <p class="mb-2">{{ text }}</p>
+                    {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">Nenhuma nota disponível.</p>
+                {% endif %}
                 </div>
             </div>
+            </div>
+
+
+
+
+
+
+
+{# ----------------------------------------------------------------------------- #}
+{# Ações Sugeridas                                                               #}
+{# ----------------------------------------------------------------------------- #}
+<div class="col-md-12 mb-4">
+  <div class="card shadow-sm border-success">
+    <div class="card-header bg-dark text-success">
+      <h3 class="card-title mb-0">
+        <i data-feather="check-circle"></i> Ações Sugeridas
+      </h3>
+    </div>
+    <div class="card-body">
+      {% if fireflies_actions %}
+        {% for speaker, actions in fireflies_actions.items() %}
+          <p class="fw-bold fs-5 mt-4 mb-2">{{ speaker }}</p>
+          {% for act in actions %}
+            <p class="mb-2">• {{ act }}</p>
+          {% endfor %}
+        {% endfor %}
+      {% else %}
+        <p class="text-muted mb-0">Nenhuma ação sugerida.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+
+
+
+
             
             <!-- Tarefas Geradas -->
-            <div class="col-md-6 mb-4">
+            <!-- <div class="col-md-6 mb-4">
                 <div class="card shadow-sm h-100 border-success">
                     <div class="card-header bg-dark text-success">
                         <h3 class="card-title mb-0">
@@ -378,10 +428,10 @@
                         {% endif %}
                     </div>
                 </div>
-            </div>
+            </div> -->
             
             <!-- Direcionamentos Estratégicos -->
-            <div class="col-md-6 mb-4">
+            <!-- <div class="col-md-6 mb-4">
                 <div class="card shadow-sm h-100 border-primary">
                     <div class="card-header bg-dark text-primary">
                         <h3 class="card-title mb-0">
@@ -403,7 +453,7 @@
                         {% endif %}
                     </div>
                 </div>
-            </div>
+            </div> -->
             
             <!-- Conteúdo Original -->
             <div class="col-md-12 mb-4">
@@ -472,75 +522,113 @@
         </div>
     </div>
 
-    <!-- Aba de Transcrição -->
-    <div class="tab-pane fade" id="transcription" role="tabpanel" aria-labelledby="transcription-tab">
-        <div class="row">
-          <div class="col-md-12">
-            <div class="card shadow-sm border-info">
-              <div class="card-header bg-dark text-info">
-                <h3 class="card-title mb-0">
-                  <i data-feather="file-text"></i> Transcrição Completa
-                </h3>
-              </div>
-              <div class="card-body">
+<!-- Aba de Transcrição -->
+<div class="tab-pane fade" id="transcription" role="tabpanel" aria-labelledby="transcription-tab">
+  <!-- Estilos locais para o bloco de transcrição -->
+  <style>
+    .transcription-content { 
+      max-height: 400px; 
+      overflow-y: auto; 
+    }
+    .transcript-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .avatar {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #666;        /* será sobrescrito em linha */
+      color: #fff;
+      font-family: Arial, sans-serif;
+      font-size: 1rem;
+      line-height: 1;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .speaker-name {
+      font-weight: bold;
+    }
+    .speech-text {
+      white-space: pre-wrap;
+      color: #eee;
+    }
+  </style>
 
-                <!-- Player de Áudio -->
-                <audio id="transcription-audio" controls class="w-100 mb-3">
-                  <source id="audio-source" src="" type="audio/mpeg">
-                </audio>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card shadow-sm border-info">
+        <div class="card-header bg-dark text-info">
+          <h3 class="card-title mb-0">
+            <i data-feather="file-text"></i> Transcrição Completa
+          </h3>
+        </div>
+        <div class="card-body">
 
-                <!-- Player de Vídeo -->
-                <video id="transcription-video" controls class="w-100 mb-3">
-                  <source id="video-source" src="" type="video/mp4">
-                </video>
+          <!-- Player de Áudio -->
+          <audio id="transcription-audio" controls class="w-100 mb-3">
+            <source id="audio-source" src="" type="audio/mpeg">
+          </audio>
 
-                <!-- Container que será preenchido via JS ou com o fallback -->
-                <div id="transcription-text" class="transcription-content bg-dark p-3 rounded"
-                     style="max-height:400px; overflow-y:auto; color: #eee; font-family: monospace;">
-                  {% if not transcript_json.data.transcript.id %}
-                    {# Sem FF-ID: mostra o que já temos salvo #}
-                    {% for line in sentences %}
-                      <div class="mb-2 text-light"><pre class="mb-0">{{ line }}</pre></div>
-                    {% else %}
-                      <p class="text-muted">Nada para exibir.</p>
-                    {% endfor %}
-                  {% endif %}
+          <!-- Player de Vídeo -->
+          <video id="transcription-video" controls class="w-100 mb-3">
+            <source id="video-source" src="" type="video/mp4">
+          </video>
+
+          <!-- Container que será preenchido via JS ou com fallback -->
+          <div id="transcription-text"
+               class="transcription-content bg-dark p-3 rounded"
+               style="font-family: monospace;">
+            {% if not transcript_json.data.transcript.id %}
+              {# fallback estático se não houver ID #}
+              {% for line in sentences %}
+                <div class="mb-2 text-light">
+                  <pre class="mb-0">{{ line }}</pre>
                 </div>
-              </div>
-            </div>
+              {% else %}
+                <p class="text-muted">Nada para exibir.</p>
+              {% endfor %}
+            {% endif %}
           </div>
+
         </div>
       </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
+
 {% block scripts %}
   {{ super() }}
 
   <script>
-    // 1) Injeção do JSON do servidor
+    // 1) JSON do servidor
     const transcriptData = {{ transcript_json | tojson }};
-    console.log("Transcript JSON from server:", transcriptData);
-
-    // 2) Log do texto transcrito bruto (meeting.transcription)
+    // 2) fallback raw
     const rawTranscription = `{{ meeting.transcription | replace('\n', '\\n') }}`;
-    console.log("Raw transcription text:", rawTranscription);
 
     function formatTime(seconds) {
-      const ms = Number(seconds) * 1000;
-      const date = new Date(ms);
-      const mm = String(date.getUTCMinutes()).padStart(2, '0');
-      const ss = String(date.getUTCSeconds()).padStart(2, '0');
+      const ms   = Number(seconds) * 1000;
+      const d    = new Date(ms);
+      const mm   = String(d.getUTCMinutes()).padStart(2,'0');
+      const ss   = String(d.getUTCSeconds()).padStart(2,'0');
       return `${mm}:${ss}`;
     }
 
+    // Cores fixas por índice de speaker
+    const colors = ['#e74c3c','#3498db','#2ecc71','#9b59b6','#f1c40f','#1abc9c','#f39c12'];
+
     async function loadTranscript() {
-      // 3) Pega o ID do Fireflies
-      const id = transcriptData.data.transcript.id;
-      console.log("Will fetch Fireflies transcript for ID:", id);
+      const id        = transcriptData.data.transcript.id;
+      const container = document.getElementById("transcription-text");
+
+      // fallback
       if (!id) {
-        console.warn("Nenhum ID de Fireflies disponível (ID está undefined ou null).");
-        // Se não houver ID, exibe o rawTranscription no container
-        const container = document.getElementById("transcription-text");
         container.innerHTML = rawTranscription
           .split("\\n")
           .map(line => `<div class="mb-2 text-light"><pre class="mb-0">${line}</pre></div>`)
@@ -548,98 +636,55 @@
         return;
       }
 
-      // 4) Monta URL e Headers
-      const url = "https://api.fireflies.ai/graphql";
-      const headers = {
-        "Content-Type": "application/json",
-        "x-apollo-operation-name": "GetTranscript",
-        "Authorization": "Bearer 62ea8e16-01d1-47b0-8122-4ad2078b8a99"
-      };
-
-      // 5) Monta o corpo completo da query GraphQL
-      const BODY = {
-        operationName: "GetTranscript",
-        query: `
-          query GetTranscript($id:String!) {
-            transcript(id:$id) {
-              id
-              sentences {
-                index
-                speaker_name
-                text
-                start_time
-                end_time
-              }
-              audio_url
-              video_url
-            }
-          }`,
-        variables: { id }
-      };
-
-      // 6) Log da requisição completa para copiar no Postman
-      console.log(">>> URL:", url);
-      console.log(">>> Headers:", JSON.stringify(headers, null, 2));
-      console.log(">>> Body completo:", JSON.stringify(BODY, null, 2));
-
-      try {
-        const resp = await fetch(url, {
-          method: "POST",
-          headers: headers,
-          body: JSON.stringify(BODY)
-        });
-        const json = await resp.json();
-        console.log("Transcript GraphQL response:", json);
-
-        const tr = json?.data?.transcript;
-        if (!tr) {
-          console.warn("Campo 'transcript' veio vazio no GraphQL response.");
-          return;
-        }
-
-        // 7) POPULA o <audio> se tiver URL
-        if (tr.audio_url) {
-          const audioSource = document.getElementById("audio-source");
-          audioSource.src = tr.audio_url;
-          const audioPlayer = document.getElementById("transcription-audio");
-          audioPlayer.load();
-        }
-
-        // 8) POPULA o <video> se tiver URL
-        if (tr.video_url) {
-          const videoSource = document.getElementById("video-source");
-          videoSource.src = tr.video_url;
-          const videoPlayer = document.getElementById("transcription-video");
-          videoPlayer.load();
-        }
-
-        // 9) Preenche o container de texto com cada sentença
-        const container = document.getElementById("transcription-text");
-        if (Array.isArray(tr.sentences) && tr.sentences.length) {
-          const htmlSentences = tr.sentences.map(s => {
-            const time = formatTime(s.start_time);
-            return `
-              <div class="mb-3">
-                <div class="fw-bold text-white">
-                  ${s.speaker_name} 
-                  <span class="text-muted small ms-2">${time}</span>
-                </div>
-                <div class="text-light">${s.text}</div>
-              </div>`;
-          }).join("");
-          container.innerHTML = htmlSentences;
-        } else {
-          container.innerHTML = "<p class='text-muted'>Nenhuma sentença encontrada.</p>";
-        }
-
-      } catch (err) {
-        console.error("Falha ao carregar transcrição:", err);
-        const fallback = document.getElementById("transcription-text");
-        fallback.innerHTML = rawTranscription
-          .split("\\n")
-          .map(line => `<div class="mb-2 text-light"><pre class="mb-0">${line}</pre></div>`)
-          .join("");
+      // players
+      const audioUrl = transcriptData.data.transcript.audio_url;
+      const videoUrl = transcriptData.data.transcript.video_url;
+      if (audioUrl) {
+        document.getElementById("audio-source").src = audioUrl;
+        document.getElementById("transcription-audio").load();
       }
+      if (videoUrl) {
+        document.getElementById("video-source").src = videoUrl;
+        document.getElementById("transcription-video").load();
+      }
+
+      // sentenças
+      const sentences = transcriptData.data.transcript.sentences || [];
+      if (!sentences.length) {
+        container.innerHTML = "<p class='text-muted'>Nenhuma sentença encontrada.</p>";
+        return;
+      }
+
+      // 1) captura ordem de aparição dos speakers
+      const speakerOrder = [];
+      sentences.forEach(s => {
+        const nm = s.speaker_name || 'Unknown';
+        if (!speakerOrder.includes(nm)) speakerOrder.push(nm);
+      });
+      // 2) mapeia cada speaker para uma cor fixa
+      const speakerColors = speakerOrder.reduce((map, nm, idx) => {
+        map[nm] = colors[idx % colors.length];
+        return map;
+      }, {});
+
+      // monta linhas usando a cor do map
+      container.innerHTML = sentences.map(s => {
+        const speaker = s.speaker_name || 'Unknown';
+        const time    = formatTime(s.start_time);
+        const color   = speakerColors[speaker];
+        const initial = speaker.charAt(0).toUpperCase();
+
+        return `
+          <div class="transcript-line">
+            <span class="avatar" style="background-color:${color}">${initial}</span>
+            <div>
+              <span class="speaker-name" style="color:${color}">${speaker}</span>
+              <span class="text-muted small ms-2">${time}</span>
+              <div class="speech-text mt-1">${s.text}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
     }
 
     document.addEventListener('DOMContentLoaded', loadTranscript);

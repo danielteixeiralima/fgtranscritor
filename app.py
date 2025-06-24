@@ -506,21 +506,29 @@ def analyze():
 
 def fetch_fireflies_transcript(ff_id):
     """
-    Busca o transcript completo da API Fireflies.ai via GraphQL.
-    Retorna o JSON bruto exatamente como no Postman.
-    Exibe no console o campo 'data' da resposta.
+    Busca o transcript completo da API Fireflies.ai via GraphQL,
+    incluindo os campos shorthand_bullet e action_items em summary.
     """
     body = {
         "operationName": "GetTranscript",
         "query": (
             "query GetTranscript($id:String!){"
-            "transcript(id:$id){"
-            "id title date transcript_url audio_url video_url meeting_link duration participants "
-            "summary{overview bullet_gist}"
-            "analytics{sentiments{positive_pct neutral_pct negative_pct}"
-            "categories{questions date_times tasks metrics}"
-            "speakers{name duration word_count}}"
-            "sentences{index speaker_name text start_time end_time}}}"
+            "  transcript(id:$id){"
+            "    id title date transcript_url audio_url video_url meeting_link duration participants "
+            "    summary{"
+            "      overview "
+            "      bullet_gist "
+            "      shorthand_bullet "
+            "      action_items"
+            "    }"
+            "    analytics{"
+            "      sentiments{positive_pct neutral_pct negative_pct}"
+            "      categories{questions date_times tasks metrics}"
+            "      speakers{name duration word_count}"
+            "    }"
+            "    sentences{index speaker_name text start_time end_time}"
+            "  }"
+            "}"
         ),
         "variables": {"id": ff_id}
     }
@@ -529,31 +537,22 @@ def fetch_fireflies_transcript(ff_id):
         "x-apollo-operation-name": "GetTranscript",
         "Authorization": f"Bearer {os.environ['FIREFLIES_API_TOKEN']}"
     }
-
-    resp = requests.post(
-        "https://api.fireflies.ai/graphql",
-        json=body,
-        headers=headers
-    )
+    resp = requests.post("https://api.fireflies.ai/graphql", json=body, headers=headers)
     resp.raise_for_status()
-    response_json = resp.json()
-
-    print("🔍 Fireflies API returned data:", response_json.get("data"))
-    return response_json
-
+    return resp.json()
 
 def fetch_fireflies_id_by_title(title, limit=50):
     """
     Busca na API Fireflies.ai o ID da transcrição correspondente ao título dado.
-    Como o GraphQL não aceita filtro por título, busca os primeiros `limit` e filtra em Python.
-    Retorna o primeiro 'id' cujo title bate exatamente, ou None.
     """
     body = {
         "operationName": "ListTranscripts",
         "query": (
             "query ListTranscripts($limit:Int,$skip:Int){"
-            "transcripts(limit:$limit,skip:$skip){"
-            "id title date transcript_url audio_url video_url meeting_link duration participants }}"
+            "  transcripts(limit:$limit,skip:$skip){"
+            "    id title date transcript_url audio_url video_url meeting_link duration participants"
+            "  }"
+            "}"
         ),
         "variables": {"limit": limit, "skip": 0}
     }
@@ -562,22 +561,12 @@ def fetch_fireflies_id_by_title(title, limit=50):
         "x-apollo-operation-name": "ListTranscripts",
         "Authorization": f"Bearer {os.environ['FIREFLIES_API_TOKEN']}"
     }
-
-    resp = requests.post(
-        "https://api.fireflies.ai/graphql",
-        json=body,
-        headers=headers
-    )
+    resp = requests.post("https://api.fireflies.ai/graphql", json=body, headers=headers)
     resp.raise_for_status()
-    data = resp.json().get("data", {}).get("transcripts", [])
-
-    for tx in data:
+    transcripts = resp.json().get("data", {}).get("transcripts", [])
+    for tx in transcripts:
         if tx.get("title") == title:
-            ff_id = tx.get("id")
-            print(f"✅ ff_id encontrado para '{title}': {ff_id}")
-            return ff_id
-
-    print(f"⚠️ Nenhuma transcrição com title='{title}' nos primeiros {limit}")
+            return tx["id"]
     return None
 
 @app.route('/meetings/<int:meeting_id>')
@@ -585,210 +574,127 @@ def fetch_fireflies_id_by_title(title, limit=50):
 def meeting_detail(meeting_id):
     """
     Mostra o detalhe de uma reunião, incluindo transcript do Fireflies
-    (busca primeiro pelo título + data/hora) e análise automática.
+    (busca primeiro pelo título + data/hora), análise automática,
+    notas (shorthand_bullet) e ações sugeridas (action_items) agrupadas por participante.
     """
     meeting = Meeting.query.get_or_404(meeting_id)
 
-    # 1) Log básico do ID interno e *possível* fireflies_transcript_id armazenado
-    app.logger.info(f"[meeting_detail] Reunião DB ID: {meeting.id}, "
-                    f"fireflies_transcript_id armazenado: {meeting.fireflies_transcript_id!r}")
-
-    # Verifica se o usuário tem permissão para ver esta reunião
     if meeting.user_id != current_user.id:
         flash('Você não tem permissão para acessar esta reunião!', 'danger')
         return redirect(url_for('dashboard'))
 
-    # 2) Prepara a estrutura mínima para o template não falhar caso não haja transcript
-    transcript_json = {"data": {"transcript": {}}}
+    transcript_json   = {"data": {"transcript": {"summary": {}}}}
+    ff_summary        = None
+    ff_bullets        = None
+    fireflies_notes   = []
+    fireflies_actions = {}
 
-    # 3) Só tentamos buscar transcrição no Fireflies se já houver data/hora da reunião e se ela já passou
+    # 1) buscar ID + JSON do Fireflies se reunião já ocorreu
     if meeting.meeting_date and meeting.meeting_date <= datetime.utcnow():
-        # -------------------------------
-        # 3.1) CONVERTE meeting_date PARA MILISSEGUNDOS UTC (para comparar com o campo `date` do Fireflies)
-        # -------------------------------
-        # Se meeting.meeting_date não tiver tzinfo, assumimos que é UTC
         md = meeting.meeting_date
         if md.tzinfo is None:
             md = md.replace(tzinfo=pytz.utc)
-        # timestamp em segundos → *1000 para milissegundos
-        meeting_ts_ms = int(md.timestamp() * 1000)
+        ts_ms = int(md.timestamp() * 1000)
 
-        app.logger.info(f"[meeting_detail] Meeting date (UTC) convertido para milissegundos: {meeting_ts_ms}")
-
-        # -------------------------------
-        # 3.2) PREPARA A QUERY GraphQL “ListTranscripts” PARA PEGAR TODOS OS TRANSCRIPTS
-        # -------------------------------
-        graphql_query = """
+        list_query = """
         query ListTranscripts {
-          transcripts {
-            id
-            title
-            date
-            transcript_url
-            audio_url
-            video_url
-          }
+          transcripts { id title date }
         }
         """
-
-        body = {
-            "operationName": "ListTranscripts",
-            "query": graphql_query,
-            # Não temos variáveis aqui, pois a query acima não usa $variáveis
-            "variables": {}
-        }
-
-        # Cabeçalhos obrigatórios:
-        fireflies_api_key = os.environ.get("FIREFLIES_API_TOKEN", None)
-        if not fireflies_api_key:
-            app.logger.error("[meeting_detail] Variável de ambiente FIRELIES_API_TOKEN não encontrada!")
-            flash("Erro interno: chave de API do Fireflies não configurada.", "danger")
-        else:
-            headers = {
+        resp = requests.post(
+            "https://api.fireflies.ai/graphql",
+            json={"operationName": "ListTranscripts", "query": list_query, "variables": {}},
+            headers={
                 "Content-Type": "application/json",
-                "x-apollo-operation-name": "ListTranscripts",
-                "Authorization": f"Bearer {fireflies_api_key}"
-            }
+                "Authorization": f"Bearer {os.environ['FIREFLIES_API_TOKEN']}"
+            },
+            timeout=10
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", {}) or {}
+        transcripts = data.get("transcripts") or []
 
-            # 3.3) Loga no console o corpo EXATO que estamos enviando (para testar no Postman)
-            app.logger.info(f"[meeting_detail] Fireflies GraphQL BODY → {body}")
+        chosen_id = next((
+            t["id"] for t in transcripts
+            if t.get("title","").strip() == meeting.title.strip() and t.get("date") == ts_ms
+        ), None)
 
-            try:
-                resp = requests.post(
-                    "https://api.fireflies.ai/graphql",
-                    headers=headers,
-                    json=body,
-                    timeout=10
-                )
-                resp.raise_for_status()
-                response_json = resp.json()
-                # 3.4) Loga a resposta completa da API (para você copiar e colar no Postman)
-                app.logger.info(f"[meeting_detail] Fireflies GraphQL RESPONSE → {response_json!r}")
-
-            except Exception as e:
-                app.logger.error(f"[meeting_detail] Erro ao consultar Fireflies GraphQL: {e}")
-                response_json = {}
-
-            # -------------------------------
-            # 3.5) TENTA ENCONTRAR A TRANSCRIÇÃO cujo título = meeting.title e date = meeting_ts_ms
-            # -------------------------------
-            transcripts_list = response_json.get("data", {}).get("transcripts", [])
-            chosen_id = None
-
-            # Percorre tudo e tenta achar a combinação exata
-            for entry in transcripts_list:
-                entry_id    = entry.get("id")
-                entry_title = entry.get("title", "")
-                entry_date  = entry.get("date")  # já deve vir como inteiro de milissegundos
-
-                # Log individual para checar cada entrada (opcional; pode gerar muito log se muitos transcripts)
-                app.logger.debug(f"[meeting_detail] Checando entry: id={entry_id}, title={entry_title!r}, date={entry_date}")
-
-                # Comparação exata de string (título) + data exata em ms
-                if entry_title.strip() == meeting.title.strip() and entry_date == meeting_ts_ms:
-                    chosen_id = entry_id
-                    break
-
-            if chosen_id:
-                app.logger.info(f"[meeting_detail] Encontrou transcript_id correspondente: {chosen_id!r}")
-
-                # 3.6) Se estiver vazio ou mudou, atualiza no banco
-                if meeting.fireflies_transcript_id != chosen_id:
-                    meeting.fireflies_transcript_id = chosen_id
-                    db.session.commit()
-                    app.logger.info(f"[meeting_detail] Salvo novo fireflies_transcript_id no DB: {chosen_id!r}")
-
-                # 3.7) BUSCA AGORA O CONTEÚDO COMPLETO DO TRANSCRITO (como antes)
-                try:
-                    transcript_json = fetch_fireflies_transcript(chosen_id)
-                    ff_summary = transcript_json \
-                        .get("data", {}) \
-                        .get("transcript", {}) \
-                        .get("summary", {}) \
-                        .get("overview")
-                    ff_bullets = transcript_json \
-                        .get("data", {}) \
-                        .get("transcript", {}) \
-                        .get("summary", {}) \
-                        .get("bullet_gist")
-                    app.logger.info(f"[meeting_detail] JSON retornado via fetch_fireflies_transcript: {transcript_json!r}")
-                except Exception as e:
-                    app.logger.error(f"[meeting_detail] Erro em fetch_fireflies_transcript para ID {chosen_id}: {e}")
-
-            else:
-                app.logger.warning(f"[meeting_detail] Não encontrou transcript com título={meeting.title!r} "
-                                   f"e date(ms)={meeting_ts_ms}. transcript_json será vazio.")
-                # transcript_json fica como {"data":{"transcript":{}}}
-
-        # 3.8) Se, após tudo, ainda houver algo no transcript_json, extrai `tr` e preenche meeting.transcription
-        tr = transcript_json.get("data", {}).get("transcript") or {}
-        app.logger.info(f"[meeting_detail] Nó 'transcript' extraído (pós-fetch): {tr!r}")
-
-        # 3.9) Se vier sentenças via GraphQL
-        sentences_data = tr.get("sentences", [])
-        if sentences_data:
-            text = "\n".join(s.get("text", "") for s in sentences_data)
-            meeting.transcription = text
-            meeting.audio_url     = tr.get("audio_url")
-            meeting.video_url     = tr.get("video_url")
+        if chosen_id:
+            meeting.fireflies_transcript_id = chosen_id
             db.session.commit()
-            app.logger.info(f"[meeting_detail] Salvou transcription + audio_url/video_url no DB.")
+            transcript_json = fetch_fireflies_transcript(chosen_id)
 
-        # 3.10) Se não vier `sentences`, mas tiver `transcript_url`, baixa diretamente como antes
-        elif tr.get("transcript_url"):
-            try:
-                resp2 = requests.get(tr["transcript_url"], timeout=10)
-                resp2.raise_for_status()
-                text2 = resp2.text
-                if text2.strip():
-                    meeting.transcription = text2
-                    db.session.commit()
-                    app.logger.info(f"[meeting_detail] Salvou transcription via transcript_url no DB.")
-                else:
-                    flash("Transcrição vazia no transcript_url.", "warning")
-                    app.logger.warning("[meeting_detail] transcript_url retornou texto vazio.")
-            except Exception as e:
-                app.logger.error(f"[meeting_detail] Erro ao baixar transcript_url: {e}")
-                flash("Não foi possível baixar a transcrição completa.", "warning")
+    # 2) extrair nó transcript
+    tr = transcript_json.get("data", {}).get("transcript", {}) or {}
+    tr.setdefault("summary", {})
 
-        # 3.11) Se nada foi encontrado
-        else:
-            flash("Transcrição não encontrada para este ID de reunião.", "warning")
-            app.logger.warning("[meeting_detail] Nem sentences nem transcript_url presentes em tr.")
-    else:
-        app.logger.info("[meeting_detail] Não buscou transcrição porque reunião ainda não passou ou não tem meeting_date.")
+    # 3) salvar transcription + URLs
+    sentences = tr.get("sentences", []) or []
+    if sentences:
+        meeting.transcription = "\n".join(s.get("text","") for s in sentences)
+        meeting.audio_url     = tr.get("audio_url")
+        meeting.video_url     = tr.get("video_url")
+        db.session.commit()
+    elif tr.get("transcript_url"):
+        try:
+            r2 = requests.get(tr["transcript_url"], timeout=10)
+            r2.raise_for_status()
+            txt = r2.text.strip()
+            if txt:
+                meeting.transcription = txt
+                db.session.commit()
+        except Exception:
+            pass
 
-    # 4) Análise automática se ainda não analisada
-    if meeting.transcription and meeting.transcription.strip() and not meeting.results_json:
+    # 4) gerar análise automática, se necessário
+    if meeting.transcription and not meeting.results_json:
         try:
             results = analyze_meeting(meeting.agenda, meeting.transcription)
             meeting.results  = results
-            meeting.language = results.get('language', meeting.language)
+            meeting.language = results.get("language", meeting.language)
             db.session.commit()
-            app.logger.info(f"[meeting_detail] Análise automática salva no DB (results_json).")
-        except Exception as e:
-            app.logger.error(f"[meeting_detail] Erro ao analisar reunião {meeting.id}: {e}")
+        except Exception:
             flash('Não foi possível gerar análise automática.', 'warning')
 
-    # 5) Prepara tudo para o template
-    audio_url = meeting.audio_url
-    video_url = meeting.video_url
-    sentences = (meeting.transcription or "").split("\n")
+    # 5) extrair overview, bullets e shorthand_bullet (notas)
+    summary         = tr.get("summary") or {}
+    ff_summary      = summary.get("overview")
+    ff_bullets      = summary.get("bullet_gist")
+    raw_notes       = summary.get("shorthand_bullet") or ""
+    fireflies_notes = [line for line in raw_notes.split("\n") if line.strip()]
 
+    # 6) extrair action_items (string multilinha) e agrupar por participante
+    raw = summary.get("action_items") or ""
+    current_speaker = None
+
+    for line in raw.splitlines():
+        text = line.strip().lstrip("•").strip()
+        if not text:
+            continue
+
+        # se for nova indicação de speaker (linha em **Nome**)
+        if text.startswith("**") and text.endswith("**"):
+            current_speaker = text.strip("*")
+            continue
+
+        # se for ação e já temos um speaker válido, adiciona à lista
+        if current_speaker:
+            fireflies_actions.setdefault(current_speaker, []).append(text)
+
+    # 7) renderizar template
     return render_template(
         'results.html',
         results=meeting.results,
         meeting=meeting,
-        audio_url=audio_url,
-        video_url=video_url,
-        sentences=sentences,
+        audio_url=meeting.audio_url,
+        video_url=meeting.video_url,
+        sentences=(meeting.transcription or "").split("\n"),
         transcript_json=transcript_json,
         fireflies_overview=ff_summary,
-        fireflies_bullets=ff_bullets
+        fireflies_bullets=ff_bullets,
+        fireflies_notes=fireflies_notes,
+        fireflies_actions=fireflies_actions
     )
-
-
-
 
 
 
