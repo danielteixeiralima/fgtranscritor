@@ -298,7 +298,7 @@ document.querySelectorAll('.meeting-detail-link').forEach(link => {
     };
 
     try {
-      const resp = await fetch("https://api.fireflies.ai/graphql", {
+      const resp = await fetch("https://api.fireflies.ai/graphql", { 
         method: "POST",
         headers: {
           "Content-Type": "application/json",

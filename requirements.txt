@@ -1,0 +1,18 @@
+# Core web + ORM
+Flask>=3.0.0
+Flask-Login>=0.6.3
+Flask-SQLAlchemy>=3.1.1
+SQLAlchemy>=2.0.29
+Flask-Migrate>=4.0.4
+Werkzeug>=3.0.0
+
+# Utilidades
+python-dotenv>=1.0.1      # load_dotenv
+requests>=2.31.0          # chamadas HTTP (Web hooks, API etc.)
+python-dateutil>=2.9.0    # dateutil.parser
+pytz>=2024.1              # fusos horários
+click>=8.1.7              # comandos de CLI que você registrou
+MarkupSafe>=2.1.5         # usada internamente pelo Jinja2
+
+# OpenAI (caso openai_service use esta SDK)
+openai>=1.14.1 

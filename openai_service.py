@@ -306,7 +306,7 @@ def analyze_meeting(agenda, transcription, language=None, max_transcription_leng
             "action_items": [],
             "directions": [],
             "language": language or "pt",
-            "error": str(e)
+            "error": str(e) 
         }
         return fallback_results
 
