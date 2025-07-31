@@ -149,7 +149,7 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-info text-dark">
-                                        {{ meeting.language|upper }}
+                                        {{ 'PENDENTE' if meeting.language|lower == 'auto' else meeting.language|upper }}
                                     </span>
                                 </td>
                                 <td>
@@ -165,47 +165,19 @@
                                             {{ "%.1f"|format(meeting.alignment_score) }}/10
                                         {% else %}
                                             N/A
-                                        {% endif %} 
+                                        {% endif %}
                                     </small>
                                 </td>
                                 <td>
                                     <div class="btn-group">
+                                        {% if meeting.agenda and meeting.transcription and meeting.transcription != "Para analisar esta reunião, insira a transcrição" %}
                                         <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}" 
                                             class="btn btn-sm btn-outline-primary">
                                             <i data-feather="eye"></i>
                                         </a>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                data-bs-toggle="modal" 
-                                                data-bs-target="#deleteModal{{ meeting.id }}">
-                                            <i data-feather="trash-2"></i>
-                                        </button>
+                                        {% endif %}
                                     </div>
-                                    
-                                    <!-- Modal de Confirmação -->
-                                    <div class="modal fade" id="deleteModal{{ meeting.id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Confirmar exclusão</h5>
-                                                    <button type="button" class="btn-close" 
-                                                            data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    Tem certeza que deseja excluir a análise 
-                                                    "<strong>{{ meeting.title }}</strong>"?
-                                                    Esta ação não pode ser desfeita.
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" 
-                                                            data-bs-dismiss="modal">Cancelar</button>
-                                                    <form action="{{ url_for('delete_meeting', meeting_id=meeting.id) }}" 
-                                                            method="post">
-                                                        <button type="submit" class="btn btn-danger">Excluir</button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+
                                 </td>
                             </tr>
                             {% endfor %}

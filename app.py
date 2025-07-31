@@ -229,30 +229,27 @@ def dashboard():
     # Get meeting statistics
     try:
         stats = {}
-        
         # Total number of meetings
         stats['total_meetings'] = Meeting.query.filter_by(user_id=current_user.id).count()
-        
         # Average alignment score
         avg_score_result = db.session.query(db.func.avg(Meeting.alignment_score)).filter(Meeting.user_id == current_user.id).first()
         stats['avg_alignment_score'] = round(avg_score_result[0] or 0, 2) if avg_score_result[0] is not None else 0
-        
         # Meetings this month
         first_day = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         stats['meetings_this_month'] = Meeting.query.filter(
             Meeting.user_id == current_user.id,
             Meeting.created_at >= first_day
         ).count()
-        
-        # Get language distribution
+        # Get language distribution, filtrando 'auto'
         languages = db.session.query(
             Meeting.language, db.func.count(Meeting.id).label('count')
         ).filter(
-            Meeting.user_id == current_user.id
+            Meeting.user_id == current_user.id,
+            Meeting.language.isnot(None),
+            Meeting.language != '',
+            Meeting.language != 'auto'
         ).group_by(Meeting.language).all()
-        
         stats['languages'] = [{'language': lang, 'count': count} for lang, count in languages]
-        
     except Exception as e:
         logger.error(f"Error getting meeting statistics: {str(e)}")
         stats = {
@@ -262,7 +259,6 @@ def dashboard():
             'languages': []
         }
         flash('Ocorreu um erro ao calcular estatísticas de reuniões.', 'warning')
-    
     return render_template('dashboard.html', meetings=recent_meetings, stats=stats)
 
 def sync_calendar_events_to_meetings(service):
@@ -477,13 +473,16 @@ def analyze():
         results = analyze_meeting(agenda, transcription)
         
         # Create and save the meeting
+        lang = results.get('language', '').lower()
+        if lang not in ['pt', 'pendente']:
+            lang = 'pt'
         meeting = Meeting(
             title=title,
             agenda=agenda,
             transcription=transcription,
             meeting_date=meeting_date,
             user_id=current_user.id,
-            language=results.get('language', 'auto')
+            language=lang
         )
         
         # Set the results
@@ -1025,6 +1024,9 @@ def process_demo_recording():
         
         if current_user.is_authenticated:
             # Criar registro de reunião para a demonstração
+            lang = results.get('language', '').lower()
+            if lang not in ['pt', 'pendente']:
+                lang = 'pt'
             meeting = Meeting(
                 title=title,
                 agenda=agenda,
@@ -1033,12 +1035,10 @@ def process_demo_recording():
                 meeting_date=datetime.utcnow(),
                 created_at=datetime.utcnow(),
                 alignment_score=alignment_score,
-                language=results.get('language', 'pt')
+                language=lang
             )
-            
             # Armazenar resultados
             meeting.results = results
-            
             # Salvar a reunião no banco de dados
             db.session.add(meeting)
             db.session.commit()
@@ -1215,50 +1215,52 @@ def view_calendar():
     try:
         # Get user's Google credentials
         credentials = current_user.get_google_credentials()
-        
-        # Build Google Calendar service
         service = build_service(credentials)
-        
+
         # Sincroniza eventos do calendário com reuniões no banco
         sync_calendar_events_to_meetings(service)
-        
-        # Get a larger number of events including recent ones (past week and upcoming)
-        events = list_upcoming_events(service, max_results=20, include_recent=True)
-        
+
+        # Buscar eventos do Google Calendar (futuros e passados)
+        events = list_upcoming_events(service, max_results=50, include_recent=True)
+
+        # Próxima reunião: evento futuro mais próximo
+        from datetime import timezone
+        now_dt = datetime.now(timezone.utc)
+        next_meeting = None
+        future_events = [ev for ev in events if 'dateTime' in (ev.get('start') or {}) and datetime.fromisoformat(ev['start']['dateTime'].replace('Z', '+00:00')) > now_dt]
+        if future_events:
+            next_meeting = sorted(future_events, key=lambda ev: ev['start']['dateTime'])[0]
+
+        # Reuniões recentes: últimos 10 eventos passados
+        recent_meetings = [ev for ev in events if 'dateTime' in (ev.get('start') or {}) and datetime.fromisoformat(ev['start']['dateTime'].replace('Z', '+00:00')) <= now_dt]
+        recent_meetings = sorted(recent_meetings, key=lambda ev: ev['start']['dateTime'], reverse=True)[:10]
+
         # Obter data e hora atual no fuso horário de São Paulo para comparação no template
-        # Usar o módulo pytz para lidar corretamente com o fuso horário
-        import pytz
         sao_paulo_tz = pytz.timezone('America/Sao_Paulo')
         now = datetime.now(sao_paulo_tz).isoformat()
-        
+
         # Verificar quais eventos já foram analisados
-        # Cria uma lista de IDs de eventos do Google Calendar que já foram analisados
         analyzed_events = {}
-        
-        # Buscar as reuniões que possuem resultados (já foram analisadas)
-        # Usamos uma consulta filtrada para buscar apenas as reuniões já analisadas
         from sqlalchemy import and_, or_, not_
         analyzed_meetings = Meeting.query.filter(
             Meeting.user_id == current_user.id,
-            Meeting.results_json != None  # Forma mais compatível
+            Meeting.results_json != None
         ).all()
-        
-        # Criar um dicionário mapeando os títulos de reuniões para seus IDs internos
         for meeting in analyzed_meetings:
-            # Usa o título da reunião como chave de mapeamento
-            # Não é perfeito, mas deve funcionar para a maioria dos casos
             analyzed_events[meeting.title] = meeting.id
-        
-        return render_template('calendar.html', 
-                             events=events, 
-                             current_time=now, 
-                             analyzed_events=analyzed_events)
-        
+
+        return render_template('calendar.html',
+            events=events,
+            current_time=now,
+            analyzed_events=analyzed_events,
+            next_meeting=next_meeting,
+            recent_meetings=recent_meetings
+        )
     except Exception as e:
         logger.error(f"Error fetching calendar events: {str(e)}")
         flash(f"Erro ao buscar eventos do calendário: {str(e)}", "danger")
         return redirect(url_for('settings'))
-
+    
 @app.route('/calendar/event/<event_id>')
 @login_required
 def event_details(event_id):
@@ -1290,7 +1292,7 @@ def event_details(event_id):
         logger.error(f"Error fetching event details: {str(e)}")
         flash(f"Erro ao buscar detalhes do evento: {str(e)}", "danger")
         return redirect(url_for('view_calendar'))
-
+    
 @app.route('/calendar/new', methods=['GET', 'POST'])
 @login_required
 def create_event():
@@ -1298,66 +1300,109 @@ def create_event():
     if not current_user.google_calendar_enabled:
         flash("Você precisa conectar sua conta do Google Calendar primeiro.", "warning")
         return redirect(url_for('settings'))
-        
+
     if request.method == 'POST':
+        # Debug: mostrar todos os campos recebidos
+        print("DEBUG FORM:", dict(request.form))
+        # 1) Captura e trim de todos os campos
+        title       = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        start_date  = request.form.get('start_date', '').strip()
+        start_time  = request.form.get('start_time', '').strip()
+        end_date    = request.form.get('end_date', '').strip()
+        end_time    = request.form.get('end_time', '').strip()
+        attendees   = request.form.get('attendees', '').strip()
+        agenda      = request.form.get('agenda', '').strip()
+
+        # 2) Validação de campos obrigatórios
+        if not (title and start_date and start_time and end_date and end_time and agenda):
+            flash('Todos os campos marcados com * são obrigatórios.', 'warning')
+            return render_template('calendar.html',
+                                   title=title,
+                                   description=description,
+                                   start_date=start_date,
+                                   start_time=start_time,
+                                   end_date=end_date,
+                                   end_time=end_time,
+                                   attendees=attendees,
+                                   agenda=agenda)
+
+        # 3) Conversão segura para datetime e checagem de ordem
         try:
-            # Get form data
-            title = request.form.get('title')
-            description = request.form.get('description', '')
-            
-            # Parse start datetime
-            start_date = request.form.get('start_date')
-            start_time = request.form.get('start_time')
-            start_datetime = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
-            
-            # Parse end datetime
-            end_date = request.form.get('end_date')
-            end_time = request.form.get('end_time')
-            end_datetime = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M")
-            
-            # Get attendees
-            attendees = []
-            if request.form.get('attendees'):
-                attendees = [email.strip() for email in request.form.get('attendees').split(',') if email.strip()]
-            
-            # Garantir que hub@inovailab.com sempre seja chamado apenas uma vez
-            if "hub@inovailab.com" not in attendees:
-                attendees.append("hub@inovailab.com")
-            
-            # Get agenda
-            agenda = request.form.get('agenda', '')
-            
-            # Add agenda to description if provided
-            if agenda:
-                full_description = f"{description}\n\n--- AGENDA ---\n{agenda}"
-            else:
-                full_description = description
-            
-            # Get user's Google credentials
-            credentials = current_user.get_google_credentials()
-            
-            # Build Google Calendar service
-            service = build_service(credentials)
-            
-            # Create event
-            event = create_meeting_event(
+            start_dt = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
+            end_dt   = datetime.strptime(f"{end_date} {end_time}",     "%Y-%m-%d %H:%M")
+            if end_dt <= start_dt:
+                flash('A hora de término deve ser posterior à hora de início.', 'warning')
+                return render_template('calendar.html',
+                                       title=title,
+                                       description=description,
+                                       start_date=start_date,
+                                       start_time=start_time,
+                                       end_date=end_date,
+                                       end_time=end_time,
+                                       attendees=attendees,
+                                       agenda=agenda)
+        except ValueError:
+            flash('Formato de data/hora inválido. Use AAAA-MM-DD para data e HH:MM para hora.', 'danger')
+            return render_template('calendar.html',
+                                   title=title,
+                                   description=description,
+                                   start_date=start_date,
+                                   start_time=start_time,
+                                   end_date=end_date,
+                                   end_time=end_time,
+                                   attendees=attendees,
+                                   agenda=agenda)
+
+        # 4) Processar lista de participantes
+        attendees_list = [e.strip() for e in attendees.split(',') if e.strip()]
+        if "hub@inovailab.com" not in attendees_list:
+            attendees_list.append("hub@inovailab.com")
+
+        # 5) Montar descrição completa com pauta
+        full_description = f"{description}\n\n--- AGENDA ---\n{agenda}"
+
+        # 6) Criar evento no Google Calendar
+        try:
+            creds   = current_user.get_google_credentials()
+            service = build_service(creds)
+            event   = create_meeting_event(
                 service=service,
                 title=title,
                 description=full_description,
-                start_time=start_datetime,
-                end_time=end_datetime,
-                attendees=attendees
+                start_time=start_dt,
+                end_time=end_dt,
+                attendees=attendees_list
             )
-            
             flash("Reunião agendada com sucesso!", "success")
             return redirect(url_for('event_details', event_id=event['id']))
-            
         except Exception as e:
-            logger.error(f"Error creating calendar event: {str(e)}")
-            flash(f"Erro ao criar evento: {str(e)}", "danger")
-            return redirect(url_for('create_event'))
-            
-    return render_template('create_event.html')
+            logger.error(f"Erro criando evento: {e}")
+            flash(f"Erro ao criar evento: {e}", "danger")
+            return render_template('calendar.html',
+                                   title=title,
+                                   description=description,
+                                   start_date=start_date,
+                                   start_time=start_time,
+                                   end_date=end_date,
+                                   end_time=end_time,
+                                   attendees=attendees,
+                                   agenda=agenda)
+
+    # GET: renderiza o formulário vazio (ou com valores padrão)
+    import pytz
+    sao_paulo = pytz.timezone('America/Sao_Paulo')
+    today_date = datetime.now(sao_paulo).strftime("%Y-%m-%d")
+
+    return render_template('calendar.html',
+                           start_date=today_date,
+                           end_date=today_date,
+                           start_time='09:00',
+                           end_time='10:00',
+                           title='',
+                           description='',
+                           attendees='',
+                           agenda='')
 
     
 @app.route('/generate_agenda', methods=['GET', 'POST'])
@@ -1582,7 +1627,10 @@ def process_calendar_analysis(meeting_id):
         # Atualizar os dados da reunião
         meeting.transcription = transcription
         meeting.results = results
-        meeting.language = results.get('language', 'auto')
+        lang = results.get('language', '').lower()
+        if lang not in ['pt', 'pendente']:
+            lang = 'pt'
+        meeting.language = lang
         meeting.alignment_score = results.get('alignment_score', 0)
         
         db.session.commit()
