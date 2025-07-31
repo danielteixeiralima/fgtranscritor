@@ -127,17 +127,15 @@
                         </td>
                         <td>
                             {% if meeting.meeting_date %}
-                                {{ (meeting.meeting_date|to_brt).strftime('%d/%m/%Y %H:%M') }}
+                                {{ meeting.meeting_date.strftime('%d/%m/%Y') }}
                             {% else %}
                                 <span class="text-muted">Não especificada</span>
                             {% endif %}
                         </td>
-
-
                         <td>{{ meeting.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
                         <td>
                             <span class="badge bg-info text-dark">
-                                {{ meeting.language|upper }}
+                                {{ 'PENDENTE' if meeting.language|lower == 'auto' else meeting.language|upper }}
                             </span>
                         </td>
                         <td>
@@ -160,6 +158,7 @@
                         </td>
                         <td>
                             <div class="btn-group">
+                                {% if meeting.agenda and meeting.transcription and meeting.transcription != "Para analisar esta reunião, insira a transcrição" %}
                                 <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}"
    class="btn btn-sm btn-outline-primary meeting-detail-link"
    title="Ver detalhes"
@@ -167,38 +166,9 @@
    data-title="{{ meeting.title }}">
   <i data-feather="eye"></i>
 </a>
-                                <button type="button" class="btn btn-sm btn-outline-danger" 
-                                        title="Excluir" data-bs-toggle="modal" 
-                                        data-bs-target="#deleteModal{{ meeting.id }}">
-                                    <i data-feather="trash-2"></i>
-                                </button>
+                                {% endif %}
                             </div>
-                            
-                            <!-- Modal de Confirmação -->
-                            <div class="modal fade" id="deleteModal{{ meeting.id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Confirmar exclusão</h5>
-                                            <button type="button" class="btn-close" 
-                                                    data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            Tem certeza que deseja excluir a análise 
-                                            "<strong>{{ meeting.title }}</strong>"?
-                                            Esta ação não pode ser desfeita.
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" 
-                                                    data-bs-dismiss="modal">Cancelar</button>
-                                            <form action="{{ url_for('delete_meeting', meeting_id=meeting.id) }}" 
-                                                  method="post">
-                                                <button type="submit" class="btn btn-danger">Excluir</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+
                         </td>
                     </tr>
                     {% endfor %}
@@ -269,7 +239,7 @@ document.querySelectorAll('.meeting-detail-link').forEach(link => {
   link.addEventListener('click', async function(event) {
     event.preventDefault();
     const ffId = this.dataset.ffId;
-   
+    console.log('Fireflies ID:', ffId);
 
     const BODY = {
       operationName: "GetTranscript",
@@ -308,7 +278,7 @@ document.querySelectorAll('.meeting-detail-link').forEach(link => {
         body: JSON.stringify(BODY)
       });
       const responseJson = await resp.json();
-      
+      console.log("Fireflies API response:", responseJson);
     } catch (err) {
       console.error("Erro ao chamar Fireflies:", err);
     }

@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h2 class="card-title mb-0">
+                    <i data-feather="mail"></i> Verificação de Email
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="alert alert-info" role="alert">
+                        <i data-feather="info"></i>
+                        <strong>Verificação necessária!</strong><br>
+                        Enviamos um código de 6 dígitos para o email:<br>
+                        <strong>{{ user.email }}</strong>
+                    </div>
+                </div>
+
+                <form action="{{ url_for('verify_email') }}" method="post"> 
+                    <div class="mb-3">
+                        <label for="verification_code" class="form-label">Código de Verificação</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i data-feather="shield"></i></span>
+                            <input type="text" class="form-control text-center" 
+                                   id="verification_code" name="verification_code" 
+                                   required maxlength="6" minlength="6" 
+                                   placeholder="000000" style="font-size: 1.5rem; letter-spacing: 0.5rem;">
+                        </div>
+                        <div class="form-text">
+                            <i data-feather="clock"></i> O código expira em 15 minutos
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i data-feather="check"></i> Verificar Email
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-4">
+                    <hr>
+                    <p class="text-muted">Não recebeu o código?</p>
+                    <form action="{{ url_for('resend_verification') }}" method="post" style="display: inline;">
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <i data-feather="refresh-cw"></i> Reenviar Código
+                        </button>
+                    </form>
+                </div>
+
+                <div class="mt-4">
+                    <div class="alert alert-warning" role="alert">
+                        <i data-feather="help-circle"></i>
+                        <strong>Dicas:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Verifique sua caixa de spam</li>
+                            <li>O código tem 6 dígitos</li>
+                            <li>Você pode solicitar um novo código após 1 minuto</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-focus on verification code input
+document.getElementById('verification_code').focus();
+
+// Auto-submit when 6 digits are entered
+document.getElementById('verification_code').addEventListener('input', function(e) {
+    if (this.value.length === 6) {
+        // Small delay to allow user to see the complete code
+        setTimeout(() => {
+            this.closest('form').submit();
+        }, 500);
+    }
+});
+</script>
+{% endblock %}
