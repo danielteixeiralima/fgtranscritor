@@ -31,7 +31,7 @@
                 <input class="form-check-input" type="checkbox" id="toggleAllMeetings" 
                        {% if show_all %}checked{% endif %}
                        onclick="toggleShowAll(this.checked)">
-                <label class="form-check-label text-light" for="toggleShowAll">
+                <label class="form-check-label text-light" for="toggleAllMeetings">
                     Mostrar todas as reuniões
                 </label>
             </div>
@@ -126,12 +126,18 @@
                         </td>
                         <td>
                             {% if meeting.meeting_date %}
-                                {{ (meeting.meeting_date|to_brt).strftime('%d/%m/%Y %H:%M') }}
+                                {% set dt = meeting.meeting_date|to_brt %}
+                                {{ dt.strftime('%d') }} - {{ ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][dt.month-1] }} - {{ dt.strftime('%Y') }}<br>
+                                {{ dt.strftime('%H:%M') }}
                             {% else %}
                                 <span class="text-muted">Não especificada</span>
                             {% endif %}
                         </td>
-                        <td>{{ (meeting.created_at|to_brt).strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>
+                            {% set ct = meeting.created_at|to_brt %}
+                            {{ ct.strftime('%d') }} - {{ ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][ct.month-1] }} - {{ ct.strftime('%Y') }}<br>
+                            {{ ct.strftime('%H:%M') }}
+                        </td>
                         <td>
                             <span class="badge bg-info text-dark">
                                 {{ 'PENDENTE' if meeting.language|lower == 'auto' else meeting.language|upper }}
