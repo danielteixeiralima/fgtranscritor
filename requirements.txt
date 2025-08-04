@@ -16,3 +16,6 @@ MarkupSafe>=2.1.5         # usada internamente pelo Jinja2
 
 # OpenAI (caso openai_service use esta SDK)
 openai>=1.14.1 
+google-auth>=2.0.0
+google-auth-oauthlib>=1.0.0
+google-api-python-client>=2.0.0
