@@ -1,3 +1,4 @@
+import random
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -13,6 +14,7 @@ from werkzeug.utils import secure_filename
 from openai_service import analyze_meeting, transcribe_audio, generate_meeting_agenda
 from models import db, User, Meeting
 from templates_data import WEB_SUMMIT_AGENDA, CAKE_RECIPE_AGENDA, HOURLY_COST
+from gmail_service import gmail_service
 import requests
 from flask_migrate import Migrate
 import click
@@ -129,6 +131,7 @@ def index():
         return redirect(url_for('dashboard'))
     return render_template('index.html')
 
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """Handle user registration"""
@@ -162,14 +165,98 @@ def register():
         # Create new user
         user = User(username=username, email=email)
         user.set_password(password)
-        
         db.session.add(user)
         db.session.commit()
-        
-        flash('Registro realizado com sucesso! Agora você pode fazer login.', 'success')
-        return redirect(url_for('login'))
+
+        # Enviar email de verificação
+        def generate_verification_code():
+            return "{:06d}".format(random.randint(0, 999999))
+
+        from gmail_service import gmail_service
+        verification_code = generate_verification_code()
+        user.verification_code = verification_code
+        user.verification_code_sent_at = datetime.utcnow()
+        db.session.commit()
+        gmail_service.send_verification_email(user.email, user.username, verification_code)
+
+        flash('Registro realizado com sucesso! Verifique seu email para ativar a conta.', 'info')
+        return render_template('verify_email.html', user=user)
     
     return render_template('register.html')
+
+
+@app.route('/verify-email', methods=['GET', 'POST'])
+def verify_email():
+    """Handle email verification"""
+    # Check if user is in verification process
+    user_id = session.get('pending_verification_user_id')
+    if not user_id:
+        flash('Sessão de verificação expirou. Faça login novamente.', 'warning')
+        return redirect(url_for('login'))
+    
+    user = User.query.get(user_id)
+    if not user:
+        flash('Usuário não encontrado.', 'danger')
+        return redirect(url_for('login'))
+    
+    # If user is already verified, redirect to dashboard
+    if user.email_verified:
+        session.pop('pending_verification_user_id', None)
+        login_user(user)
+        flash('Email já verificado! Bem-vindo!', 'success')
+        return redirect(url_for('dashboard'))
+    
+    if request.method == 'POST':
+        token = request.form.get('verification_code')
+
+        if not token:
+            flash('Por favor, insira o código de verificação.', 'danger')
+            return redirect(url_for('verify_email'))
+
+        # Verifica se o código bate com o salvo no banco
+        if user.verification_code and token == user.verification_code:
+            user.email_verified = True
+            user.verification_code = None
+            db.session.commit()
+            session.pop('pending_verification_user_id', None)
+            login_user(user)
+            flash('Email verificado com sucesso! Bem-vindo!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Código de verificação inválido ou expirado.', 'danger')
+            return redirect(url_for('verify_email'))
+
+    return render_template('verify_email.html', user=user)
+
+
+@app.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    """Reenvia o código de verificação por email usando gmail_service"""
+    user_id = session.get('pending_verification_user_id')
+    if not user_id:
+        flash('Sessão de verificação expirou.', 'warning')
+        return redirect(url_for('login'))
+
+    user = User.query.get(user_id)
+    if not user:
+        flash('Usuário não encontrado.', 'danger')
+        return redirect(url_for('login'))
+
+    # Gerar novo código e atualizar timestamp
+    verification_code = "{:06d}".format(random.randint(0, 999999))
+    user.verification_code = verification_code
+    user.verification_code_sent_at = datetime.utcnow()
+    db.session.commit()
+
+    # Enviar email
+    success, message = gmail_service.send_verification_email(user.email, user.username, verification_code)
+    if success:
+        flash('Novo código enviado para seu email.', 'success')
+    else:
+        flash(f'Erro ao enviar email: {message}', 'danger')
+
+    return redirect(url_for('verify_email'))
+
 
 
 @app.route('/users')
@@ -181,26 +268,33 @@ def list_users():
     users = User.query.order_by(User.created_at.desc()).all()
     return render_template('users.html', users=users)
 
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Handle user login"""
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
-    
+
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
         remember = 'remember' in request.form
-        
+
         if not username or not password:
             flash('Por favor, insira nome de usuário e senha!', 'danger')
             return redirect(url_for('login'))
-        
+
         # Find user by username
         user = User.query.filter_by(username=username).first()
-        
+
         # Check if user exists and password is correct
         if user and user.check_password(password):
+            # Check if email is verified
+            if not user.email_verified:
+                flash('Você precisa verificar seu email antes de fazer login!', 'warning')
+                session['pending_verification_user_id'] = user.id
+                return redirect(url_for('verify_email'))
+            
             login_user(user, remember=remember)
             next_page = request.args.get('next')
             flash(f'Bem-vindo, {user.username}!', 'success')
@@ -210,6 +304,8 @@ def login():
             return redirect(url_for('login'))
     
     return render_template('login.html')
+
+
 
 @app.route('/logout')
 @login_required
@@ -1260,7 +1356,7 @@ def view_calendar():
         logger.error(f"Error fetching calendar events: {str(e)}")
         flash(f"Erro ao buscar eventos do calendário: {str(e)}", "danger")
         return redirect(url_for('settings'))
-    
+
 @app.route('/calendar/event/<event_id>')
 @login_required
 def event_details(event_id):
@@ -1293,117 +1389,114 @@ def event_details(event_id):
         flash(f"Erro ao buscar detalhes do evento: {str(e)}", "danger")
         return redirect(url_for('view_calendar'))
     
-@app.route('/calendar/new', methods=['GET', 'POST'])
+
+@app.route('/create_event', methods=['POST'])
 @login_required
 def create_event():
-    """Criar novo evento no Google Calendar"""
+    """Criar novo evento no Google Calendar (apenas via modal)"""
     if not current_user.google_calendar_enabled:
         flash("Você precisa conectar sua conta do Google Calendar primeiro.", "warning")
-        return redirect(url_for('settings'))
+        return redirect(url_for('view_calendar'))
 
-    if request.method == 'POST':
-        # Debug: mostrar todos os campos recebidos
-        print("DEBUG FORM:", dict(request.form))
-        # 1) Captura e trim de todos os campos
-        title       = request.form.get('title', '').strip()
-        description = request.form.get('description', '').strip()
-        start_date  = request.form.get('start_date', '').strip()
-        start_time  = request.form.get('start_time', '').strip()
-        end_date    = request.form.get('end_date', '').strip()
-        end_time    = request.form.get('end_time', '').strip()
-        attendees   = request.form.get('attendees', '').strip()
-        agenda      = request.form.get('agenda', '').strip()
+    try:
+        # 1) Dados do formulário
+        title            = request.form.get('title')
+        description      = request.form.get('description', '')
+        start_date       = request.form.get('start_date', '').strip()
+        start_time       = request.form.get('start_time', '').strip()
+        end_time         = request.form.get('end_time', '').strip()
+        all_day          = request.form.get('all_day') is not None
 
-        # 2) Validação de campos obrigatórios
-        if not (title and start_date and start_time and end_date and end_time and agenda):
-            flash('Todos os campos marcados com * são obrigatórios.', 'warning')
-            return render_template('calendar.html',
-                                   title=title,
-                                   description=description,
-                                   start_date=start_date,
-                                   start_time=start_time,
-                                   end_date=end_date,
-                                   end_time=end_time,
-                                   attendees=attendees,
-                                   agenda=agenda)
+        # 2) Validações
+        if not start_date:
+            raise ValueError("Data é obrigatória")
+        if all_day:
+            start_time, end_time = "00:00", "23:59"
+        elif not start_time or not end_time:
+            raise ValueError("Hora de início e hora de término são obrigatórias")
 
-        # 3) Conversão segura para datetime e checagem de ordem
-        try:
-            start_dt = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
-            end_dt   = datetime.strptime(f"{end_date} {end_time}",     "%Y-%m-%d %H:%M")
-            if end_dt <= start_dt:
-                flash('A hora de término deve ser posterior à hora de início.', 'warning')
-                return render_template('calendar.html',
-                                       title=title,
-                                       description=description,
-                                       start_date=start_date,
-                                       start_time=start_time,
-                                       end_date=end_date,
-                                       end_time=end_time,
-                                       attendees=attendees,
-                                       agenda=agenda)
-        except ValueError:
-            flash('Formato de data/hora inválido. Use AAAA-MM-DD para data e HH:MM para hora.', 'danger')
-            return render_template('calendar.html',
-                                   title=title,
-                                   description=description,
-                                   start_date=start_date,
-                                   start_time=start_time,
-                                   end_date=end_date,
-                                   end_time=end_time,
-                                   attendees=attendees,
-                                   agenda=agenda)
+        # 3) Conversão para datetime
+        start_datetime = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
+        end_datetime   = datetime.strptime(f"{start_date} {end_time}",   "%Y-%m-%d %H:%M")
 
-        # 4) Processar lista de participantes
-        attendees_list = [e.strip() for e in attendees.split(',') if e.strip()]
-        if "hub@inovailab.com" not in attendees_list:
-            attendees_list.append("hub@inovailab.com")
+        # 4) Participantes
+        attendees_raw = request.form.get('attendees', '')
+        attendees = []
+        if attendees_raw:
+            import re
+            attendees = [
+                e.strip() for e in re.split(r'[,;\s]+', attendees_raw)
+                if '@' in e
+            ]
+        if "hub@inovailab.com" not in attendees:
+            attendees.append("hub@inovailab.com")
 
-        # 5) Montar descrição completa com pauta
-        full_description = f"{description}\n\n--- AGENDA ---\n{agenda}"
+        # 5) Descrição e pauta
+        agenda = request.form.get('agenda', '')
+        full_description = (
+            f"{description}\n\n--- PAUTA ---\n{agenda}"
+            if agenda else description
+        )
 
-        # 6) Criar evento no Google Calendar
-        try:
-            creds   = current_user.get_google_credentials()
-            service = build_service(creds)
-            event   = create_meeting_event(
-                service=service,
-                title=title,
-                description=full_description,
-                start_time=start_dt,
-                end_time=end_dt,
-                attendees=attendees_list
-            )
-            flash("Reunião agendada com sucesso!", "success")
-            return redirect(url_for('event_details', event_id=event['id']))
-        except Exception as e:
-            logger.error(f"Erro criando evento: {e}")
-            flash(f"Erro ao criar evento: {e}", "danger")
-            return render_template('calendar.html',
-                                   title=title,
-                                   description=description,
-                                   start_date=start_date,
-                                   start_time=start_time,
-                                   end_date=end_date,
-                                   end_time=end_time,
-                                   attendees=attendees,
-                                   agenda=agenda)
+        # 6) Recorrência
+        recurrence_type        = request.form.get('recurrence_type', 'none')
+        recurrence_count_value = request.form.get('recurrence_count', '730')
+        recurrence_count = (
+            'unlimited'
+            if recurrence_count_value == 'unlimited'
+            else int(recurrence_count_value)
+        )
 
-    # GET: renderiza o formulário vazio (ou com valores padrão)
-    import pytz
-    sao_paulo = pytz.timezone('America/Sao_Paulo')
-    today_date = datetime.now(sao_paulo).strftime("%Y-%m-%d")
+        recurrence_data = None
+        if recurrence_type != 'none':
+            # mapeia dia da semana do start_datetime
+            weekday_map   = ['MO','TU','WE','TH','FR','SA','SU']
+            dia_da_semana = weekday_map[start_datetime.weekday()]
 
-    return render_template('calendar.html',
-                           start_date=today_date,
-                           end_date=today_date,
-                           start_time='09:00',
-                           end_time='10:00',
-                           title='',
-                           description='',
-                           attendees='',
-                           agenda='')
+            if recurrence_type == 'daily':
+                weekdays = ['MO','TU','WE','TH','FR']
+            elif recurrence_type == 'weekly':
+                weekdays = [dia_da_semana]
+            else:
+                weekdays = []
 
+            recurrence_data = {
+                'type':     recurrence_type,  # 'daily' ou 'weekly'
+                'interval': 1,
+                'count':    recurrence_count,
+                'weekdays': weekdays
+            }
+
+        # 7) Chama o utilitário de criação
+        credentials = current_user.get_google_credentials()
+        from calendar_utils import build_calendar_service, create_calendar_event
+        service = build_calendar_service(credentials)
+        event = create_calendar_event(
+            service=service,
+            title=title,
+            description=full_description,
+            start_time=start_datetime,
+            end_time=end_datetime,
+            attendees=attendees,
+            recurrence=recurrence_data
+        )
+
+        # 8) Feedback
+        if recurrence_type == 'none':
+            flash('Reunião agendada com sucesso!', 'success')
+        else:
+            if recurrence_count == 'unlimited':
+                msg = 'Reunião recorrente criada com sucesso – repetição infinita.'
+            else:
+                msg = f'Reunião recorrente criada com sucesso – {recurrence_count} ocorrências.'
+            flash(msg, 'success')
+
+        return redirect(url_for('view_calendar'))
+
+    except Exception as e:
+        logger.error(f"Error creating calendar event: {e}")
+        flash(f"Erro ao criar evento: {e}", 'danger')
+        return redirect(url_for('view_calendar'))
     
 @app.route('/generate_agenda', methods=['GET', 'POST'])
 @login_required
