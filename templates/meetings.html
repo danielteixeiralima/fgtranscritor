@@ -113,7 +113,6 @@
                         <th>Idioma</th>
                         <th>Pontuação</th>
                         <th>Transcrição</th>
-
                         <th>Ações</th>
                     </tr>
                 </thead>
@@ -127,7 +126,7 @@
                         </td>
                         <td>
                             {% if meeting.meeting_date %}
-                                {{ meeting.meeting_date.strftime('%d/%m/%Y') }}
+                                {{ meeting.meeting_date.strftime('%d/%m/%Y %H:%M') }}
                             {% else %}
                                 <span class="text-muted">Não especificada</span>
                             {% endif %}
@@ -158,17 +157,16 @@
                         </td>
                         <td>
                             <div class="btn-group">
-                                {% if meeting.agenda and meeting.transcription and meeting.transcription != "Para analisar esta reunião, insira a transcrição" %}
+                                {% if meeting.transcription %}
                                 <a href="{{ url_for('meeting_detail', meeting_id=meeting.id) }}"
-   class="btn btn-sm btn-outline-primary meeting-detail-link"
-   title="Ver detalhes"
-   data-ff-id="{{ meeting.google_calendar_event_id or '' }}"
-   data-title="{{ meeting.title }}">
-  <i data-feather="eye"></i>
-</a>
+                                   class="btn btn-sm btn-outline-primary meeting-detail-link"
+                                   title="Ver detalhes"
+                                   data-ff-id="{{ meeting.google_calendar_event_id or '' }}"
+                                   data-title="{{ meeting.title }}">
+                                  <i data-feather="eye"></i>
+                                </a>
                                 {% endif %}
                             </div>
-
                         </td>
                     </tr>
                     {% endfor %}
