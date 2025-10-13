@@ -13,25 +13,40 @@
       <table class="table table-hover">
         <thead>
           <tr>
-            <th>Username</th>
+            <th>ID</th>
+            <th>Nome de Usuário</th>
             <th>Email</th>
             <th>Admin</th>
             <th>Criado em</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody>
-          {% for u in users %}
+          {% for user in users %}
           <tr>
-            <td>{{ u.username }}</td>
-            <td>{{ u.email }}</td>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
             <td>
-              {% if u.is_admin %}
+              {% if user.is_admin %}
                 <span class="badge bg-success">Sim</span>
               {% else %}
                 <span class="badge bg-secondary">Não</span>
               {% endif %}
             </td>
-            <td>{{ u.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td>{{ user.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            <td>
+              <!-- Botão para exclusão -->
+              <form action="{{ url_for('delete_user', user_id=user.id) }}" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-danger btn-sm" title="Excluir Usuário" onclick="return confirm('Tem certeza que deseja excluir este usuário?');">
+                  <i data-feather="trash-2"></i>
+                </button>
+              </form>
+              <!-- Botão de edição -->
+              <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-primary btn-sm" title="Editar Usuário">
+                <i data-feather="edit"></i>
+              </a>
+            </td>
           </tr>
           {% endfor %}
         </tbody>

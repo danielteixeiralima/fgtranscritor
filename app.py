@@ -41,7 +41,9 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
-    "pool_recycle": 60,
+    "pool_recycle": 180,
+    "pool_size": 5,
+    "max_overflow": 10,
     "connect_args": {
         "connect_timeout": 10,
         "keepalives": 1,
@@ -810,6 +812,36 @@ def delete_meeting(meeting_id):
     flash('Reunião excluída com sucesso!', 'success')
     return redirect(url_for('dashboard'))
 
+@app.route('/users/<int:user_id>/delete', methods=['POST'])
+@login_required
+def delete_user(user_id):
+     if not current_user.is_admin:
+         flash('Permissão negada.', 'danger')
+         return redirect(url_for('dashboard'))
+     user = User.query.get_or_404(user_id)
+     if user.id == current_user.id:
+         flash('Você não pode excluir seu próprio usuário.', 'warning')
+         return redirect(url_for('list_users'))
+     db.session.delete(user)
+     db.session.commit()
+     flash('Usuário excluído com sucesso!', 'success')
+     return redirect(url_for('list_users'))
+
+@app.route('/users/<int:user_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    if not current_user.is_admin:
+        flash('Permissão negada.', 'danger')
+        return redirect(url_for('dashboard'))
+    user = User.query.get_or_404(user_id)
+    if request.method == 'POST':
+        user.username = request.form.get('username')
+        user.email = request.form.get('email')
+        db.session.commit()
+        flash('Usuário atualizado com sucesso!', 'success')
+        return redirect(url_for('list_users'))
+    return render_template('edit_user.html', user=user)
+
 @app.route('/guest-analyze', methods=['POST'])
 def guest_analyze():
     """Process form data for guest users (no login required)"""
@@ -1566,8 +1598,8 @@ def edit_agenda():
         try:
             # Converter data e hora para datetime
             start_datetime = datetime.strptime(f"{start_date} {start_time}", "%Y-%m-%d %H:%M")
-            end_datetime = datetime.strptime(f"{end_date} {end_time}", "%Y-%m-%d %H:%M")
-            
+            end_datetime = datetime.strptime(f"{start_date} {end_time}", "%Y-%m-%d %H:%M")
+
             # Verificar se a data de término é posterior à data de início
             if end_datetime <= start_datetime:
                 flash('A hora de término deve ser posterior à hora de início.', 'warning')
