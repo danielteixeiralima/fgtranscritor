@@ -1759,3 +1759,120 @@ def process_calendar_analysis(meeting_id):
         logger.error(f"Error during calendar meeting analysis: {str(e)}")
         flash(f'Ocorreu um erro durante a análise: {str(e)}', 'danger')
         return redirect(url_for('edit_calendar_analysis', meeting_id=meeting_id))
+#############################################################
+# Internal API Routes
+#############################################################
+@app.route('/api/create_meeting', methods=['POST'])
+def api_create_meeting():
+    """
+    API External Endpoint to create meetings.
+    Requires:
+    - Header: X-API-Key matching os.environ['API_SECRET_KEY']
+    - JSON Body:
+        - user_email: Email of the organizer (must exist in DB)
+        - title: Meeting title
+        - description: Meeting description
+        - start_time: ISO format string (e.g. '2023-12-25T10:00:00')
+        - end_time: ISO format string
+        - attendees: List of emails (optional)
+    """
+    # 1. Validate API Key
+    api_key = request.headers.get('X-API-Key')
+    expected_key = os.environ.get('API_SECRET_KEY')
+    
+    if not expected_key:
+        logger.error("API_SECRET_KEY not configured on server")
+        return jsonify({'error': 'Server configuration error'}), 500
+        
+    if not api_key or api_key != expected_key:
+        logger.warning(f"Invalid API Key attempt: {api_key}")
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Missing JSON body'}), 400
+            
+        # 2. Extract and Validate Params
+        user_email = data.get('user_email')
+        title = data.get('title')
+        start_str = data.get('start_time')
+        end_str = data.get('end_time')
+        
+        if not all([user_email, title, start_str, end_str]):
+            return jsonify({'error': 'Missing required fields: user_email, title, start_time, end_time'}), 400
+            
+        # 3. Find User
+        user = User.query.filter_by(email=user_email).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+            
+        if not user.google_calendar_enabled:
+            return jsonify({'error': 'User does not have Google Calendar connected'}), 400
+            
+        # 4. Parse Dates
+        try:
+            # Handle ISO strings (with or without Z)
+            start_time = datetime.fromisoformat(start_str.replace('Z', '+00:00'))
+            end_time = datetime.fromisoformat(end_str.replace('Z', '+00:00'))
+        except ValueError as e:
+            from datetime import timedelta
+            # If fromisoformat fails and it might be a simpler format, try to handle or fail
+            return jsonify({'error': f'Invalid date format: {str(e)}'}), 400
+
+        # 5. Create Event in Google Calendar
+        from calendar_utils import build_calendar_service, create_calendar_event
+        
+        credentials = user.get_google_credentials()
+        service = build_calendar_service(credentials)
+        
+        attendees = data.get('attendees', [])
+        
+        # Ensure hub@inovailab.com is included if desired (replicating app logic)
+        email_hub = "hub@inovailab.com"
+        if isinstance(attendees, list):
+             if email_hub not in attendees:
+                  attendees.append(email_hub)
+        
+        event = create_calendar_event(
+            service=service,
+            title=title,
+            description=data.get('description', ''),
+            start_time=start_time,
+            end_time=end_time,
+            attendees=attendees
+        )
+        
+        # 6. Persist Meeting in DB
+        # Check for agenda in description or use default
+        description = data.get('description', '')
+        agenda = ""
+        if "--- AGENDA ---" in description:
+            try:
+                agenda = description.split("--- AGENDA ---")[1].strip()
+            except IndexError:
+                pass
+                
+        meeting = Meeting(
+            title=title,
+            agenda=agenda if agenda else "Pauta enviada via API",
+            transcription="Para analisar esta reunião, insira a transcrição",
+            user_id=user.id,
+            meeting_date=start_time,
+            google_calendar_event_id=event.get('id'),
+            created_at=datetime.utcnow()
+        )
+        
+        db.session.add(meeting)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'meeting_id': meeting.id,
+            'google_event_id': event.get('id'),
+            'google_link': event.get('htmlLink')
+        }), 201
+        
+    except Exception as e:
+        logger.error(f"API Create Meeting Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500

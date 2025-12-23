@@ -1,0 +1,48 @@
+{
+	"info": {
+		"_postman_id": "b3f6e1a0-5b7a-4b7e-9c8d-1e2f3a4b5c6d",
+		"name": "FG Transcritor API",
+		"description": "Collection to test the internal meeting creation API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create Meeting",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-API-Key",
+						"value": "fgtranscritorpass",
+						"type": "text",
+						"description": "Secret key for authentication"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user_email\": \"daniel@fgtranscritor.com\",\n    \"title\": \"Reunião Teste Postman\",\n    \"description\": \"Reunião criada via importação do Postman.\\n\\n--- AGENDA ---\\n1. Validar API\\n2. Testar Integração\",\n    \"start_time\": \"2024-12-25T14:00:00\",\n    \"end_time\": \"2024-12-25T15:00:00\",\n    \"attendees\": [\"cliente@exemplo.com\"]\n}"
+				},
+				"url": {
+					"raw": "https://transcritor.replit.app/api/create_meeting",
+					"protocol": "https",
+					"host": [
+						"transcritor",
+						"replit",
+						"app"
+					],
+					"path": [
+						"api",
+						"create_meeting"
+					]
+				},
+				"description": "Creates a new meeting in the system and Google Calendar"
+			},
+			"response": []
+		}
+	]
+}
