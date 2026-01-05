@@ -66,12 +66,11 @@
 					"raw": "{\n    \"title\": \"Reunião de Exemplo\",\n    \"date\": \"2025-01-05\"\n}"
 				},
 				"url": {
-					"raw": "https://transcritor.replit.app/api/get_transcript",
+					"raw": "https://inovaimeet.com/api/get_transcript",
 					"protocol": "https",
 					"host": [
-						"transcritor",
-						"replit",
-						"app"
+						"inovaimeet",
+						"com"
 					],
 					"path": [
 						"api",

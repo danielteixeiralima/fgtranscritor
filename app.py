@@ -1983,7 +1983,14 @@ def api_get_transcript():
         summary_node = tr_node.get("summary", {})
         sentences = tr_node.get("sentences", [])
         
-        full_text = "\n".join([s.get("text", "") for s in sentences])
+        # Format transcription with speaker names
+        formatted_prose = []
+        for s in sentences:
+            speaker = s.get("speaker_name", "Unknown")
+            text = s.get("text", "")
+            formatted_prose.append(f"{speaker}: {text}")
+        
+        full_text = "\n".join(formatted_prose)
         
         return jsonify({
             'found': True,
