@@ -1876,3 +1876,127 @@ def api_create_meeting():
     except Exception as e:
         logger.error(f"API Create Meeting Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/get_transcript', methods=['POST'])
+def api_get_transcript():
+    """
+    API Endpoint to retrieve Fireflies transcript by Title and Date.
+    Requires:
+    - Header: X-API-Key matching os.environ['API_SECRET_KEY']
+    - JSON Body:
+        - title: Exact meeting title (case-insensitive)
+        - date: Date string 'YYYY-MM-DD'
+    """
+    # 1. Validate API Key
+    api_key = request.headers.get('X-API-Key')
+    expected_key = os.environ.get('API_SECRET_KEY')
+    
+    if not expected_key:
+        logger.error("API_SECRET_KEY not configured on server")
+        return jsonify({'error': 'Server configuration error'}), 500
+        
+    if not api_key or api_key != expected_key:
+        logger.warning(f"Invalid API Key attempt: {api_key}")
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Missing JSON body'}), 400
+            
+        target_title = data.get('title')
+        target_date_str = data.get('date')
+        
+        if not target_title or not target_date_str:
+            return jsonify({'error': 'Missing required fields: title, date'}), 400
+
+        # Validate date format
+        try:
+            target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+
+        # 2. Search in Fireflies
+        # We fetch a list of recent transcripts to find a match
+        list_query = """
+        query ListTranscripts($limit: Int) {
+          transcripts(limit: $limit) {
+            id
+            title
+            date
+            meeting_link
+          }
+        }
+        """
+        
+        # Search up to 50 recent meetings (can be increased if needed)
+        resp = requests.post(
+            "https://api.fireflies.ai/graphql",
+            json={
+                "operationName": "ListTranscripts",
+                "query": list_query,
+                "variables": {"limit": 50}
+            },
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {os.environ.get('FIREFLIES_API_TOKEN')}"
+            },
+            timeout=15
+        )
+        
+        if resp.status_code != 200:
+            logger.error(f"Fireflies API Error: {resp.text}")
+            return jsonify({'error': 'Failed to communicate with Fireflies API'}), 502
+            
+        data_json = resp.json().get("data", {}) or {}
+        transcripts = data_json.get("transcripts") or []
+        
+        found_id = None
+        match_details = None
+        
+        for t in transcripts:
+            t_title = t.get("title", "").strip()
+            # Check title (case insensitive)
+            if t_title.lower() == target_title.strip().lower():
+                # Check date
+                # Fireflies date is timestamp in milliseconds
+                f_date_ms = t.get("date")
+                if f_date_ms:
+                    f_date = datetime.fromtimestamp(f_date_ms / 1000.0).date()
+                    if f_date == target_date:
+                        found_id = t.get("id")
+                        match_details = t
+                        break
+        
+        if not found_id:
+            return jsonify({
+                'found': False,
+                'message': 'No meeting found with matching title and date',
+                'search_criteria': {'title': target_title, 'date': target_date_str}
+            }), 404
+            
+        # 3. Fetch Full Details
+        transcript_data = fetch_fireflies_transcript(found_id)
+        
+        # Extract useful info to return
+        tr_node = transcript_data.get("data", {}).get("transcript", {})
+        summary_node = tr_node.get("summary", {})
+        sentences = tr_node.get("sentences", [])
+        
+        full_text = "\n".join([s.get("text", "") for s in sentences])
+        
+        return jsonify({
+            'found': True,
+            'fireflies_id': found_id,
+            'title': tr_node.get("title"),
+            'date': target_date_str,
+            'audio_url': tr_node.get("audio_url"),
+            'video_url': tr_node.get("video_url"),
+            'summary': summary_node.get("overview", ""),
+            'action_items': summary_node.get("action_items", ""),
+            'transcription': full_text
+        })
+
+    except Exception as e:
+        logger.error(f"API Get Transcript Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500

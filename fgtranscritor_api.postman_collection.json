@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "b3f6e1a0-5b7a-4b7e-9c8d-1e2f3a4b5c6d",
 		"name": "FG Transcritor API",
-		"description": "Collection to test the internal meeting creation API",
+		"description": "Collection to test the internal meeting creation and transcript retrieval APIs",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -41,6 +41,44 @@
 					]
 				},
 				"description": "Creates a new meeting in the system and Google Calendar"
+			},
+			"response": []
+		},
+		{
+			"name": "Get Fireflies Transcript",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-API-Key",
+						"value": "fgtranscritorpass",
+						"type": "text",
+						"description": "Secret key for authentication"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"title\": \"Reunião de Exemplo\",\n    \"date\": \"2025-01-05\"\n}"
+				},
+				"url": {
+					"raw": "https://transcritor.replit.app/api/get_transcript",
+					"protocol": "https",
+					"host": [
+						"transcritor",
+						"replit",
+						"app"
+					],
+					"path": [
+						"api",
+						"get_transcript"
+					]
+				},
+				"description": "Retrieves meeting transcript by Title and Date"
 			},
 			"response": []
 		}

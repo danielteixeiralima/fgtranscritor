@@ -1,0 +1,48 @@
+{
+    "info": {
+        "_postman_id": "new-transcript-api-test",
+        "name": "FG Transcritor - Get Transcript",
+        "description": "Collection to test the new Fireflies transcript retrieval API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Get Fireflies Transcript",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                    },
+                    {
+                        "key": "X-API-Key",
+                        "value": "fgtranscritorpass",
+                        "type": "text",
+                        "description": "Secret key for authentication"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"title\": \"Reunião de Exemplo\",\n    \"date\": \"2023-10-27\"\n}"
+                },
+                "url": {
+                    "raw": "https://transcritor.replit.app/api/get_transcript",
+                    "protocol": "https",
+                    "host": [
+                        "transcritor",
+                        "replit",
+                        "app"
+                    ],
+                    "path": [
+                        "api",
+                        "get_transcript"
+                    ]
+                },
+                "description": "Busca uma transcrição baseada no título e data"
+            },
+            "response": []
+        }
+    ]
+}
